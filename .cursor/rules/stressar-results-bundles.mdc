@@ -1,0 +1,27 @@
+---
+description: Layout and meaning of exported Stressar result folders under results/
+globs: results/**/*
+alwaysApply: false
+---
+
+# Stressar exported run bundle (`results/<run-name>/`)
+
+Treat each **`<run-name>/`** directory as one benchmark run (one scenario + timestamp).
+
+## Typical files
+
+| Path | Role |
+|------|------|
+| `run_metadata.json` | Scenario label, replica counts, DB connection budget, proxy flags — use as run-level join key. |
+| `replica-*/summary.json` | Per-replica aggregates: `runInfo` (SUT, workload, target Rps, duration, pool sizing), throughput, errors, latency percentiles, resource hints. |
+| `report.md` | Human summary; cross-check numbers against JSON when automating. |
+| `node_metrics/pg_metrics.csv` | DB-side time series (connections, commits, cache, checkpoints, …). |
+| `node_metrics/db/db_proc_metrics.csv` | DB host process sampling. |
+| `node_metrics/proxy/*_proc_metrics.csv` | Proxy host CPU/memory-style sampling (names vary by SUT). |
+| `node_metrics/proxy/*_jvm_metrics.csv` | JVM/`jstat` sidecar where present (OJP runs). |
+| `node_metrics/lb/*.csv` | Present for PgBouncer topology (HAProxy). |
+
+## Conventions
+
+- **`summary.json`:** `runInfo.instanceId` / `totalInstances` identify the replica; align with folder `replica-<id>/`.
+- **Comparisons:** join runs on stable keys from `run_metadata.json` + `runInfo` (same `workload`, `loadMode`, comparable `targetRps` / phase) — see `stressar-docs/BENCHMARKING_GUIDE.md` for what “fair” comparison means in this study.

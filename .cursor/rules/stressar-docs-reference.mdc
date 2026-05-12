@@ -1,0 +1,21 @@
+---
+description: Where Stressar analysis docs live and when to read each file
+alwaysApply: true
+---
+
+# Stressar documentation (`stressar-docs/`)
+
+The canonical copy for **this repo** lives under `stressar-docs/` (not `docs/`). Before inferring field meanings or drawing conclusions from `results/`, consult these files:
+
+| Read | When you need |
+|------|----------------|
+| `stressar-docs/RESULTS_FORMAT.md` | JSON/CSV/HDR schemas, directory layouts, aggregation rules. |
+| `stressar-docs/METRICS.md` | Definition of each metric, latency clock scope, histogram behaviour, known limitations (e.g. do not trust `appRssMedian` for OJP — use JVM CSV `heap_used_mb`). |
+| `stressar-docs/BENCHMARKING_GUIDE.md` | Scenario names (`hikari-prod`, `ojp-prod`, `pgbouncer-prod`, `ojp-sqs`), SUT enums (`HIKARI_*`, `OJP`, `PGBOUNCER`), workloads (`W1_*`, `W2_*`, `W3_*`), topology, test protocols. |
+| `stressar-docs/README.md` | One-page index of the above. |
+
+**Interpretation rules**
+
+- **Throughput across replicas:** total RPS is the **sum** of per-replica `achievedThroughputRps` (or equivalent); do not average RPS across replicas as “the” throughput unless you explicitly mean per-replica mean.
+- **Latency percentiles across replicas:** merging distributions requires **histogram merge** (add bucket counts), not averaging percentiles — see `RESULTS_FORMAT.md` / `METRICS.md` § aggregation.
+- **Exports vs canonical tree:** `RESULTS_FORMAT.md` also describes a `raw/.../instance_k/` layout; this repo’s `results/<run>/replica-*` bundles may omit per-second client `timeseries.csv` — infer availability from files on disk.
