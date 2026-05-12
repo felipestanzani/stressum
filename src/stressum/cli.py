@@ -24,12 +24,181 @@ from stressum.tables import (
 )
 
 
+def discover_stressum_repo_root() -> Path | None:
+    """Checkout root for this package, or None (e.g. wheel install)."""
+    here_pkg = Path(__file__).resolve().parent
+    for cur in [here_pkg, *here_pkg.parents]:
+        manifest = cur / "pyproject.toml"
+        if not manifest.is_file():
+            continue
+        try:
+            text = manifest.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if 'name = "stressum"' in text or "name = 'stressum'" in text:
+            return cur
+    return None
+
+
 def default_output_dir(run_dir: Path) -> Path:
+    """When the run lives inside this repo, write under ``<repo>/output/<run-name>/…``."""
     stamp = datetime.now().strftime("%Y-%m-%d-%H%M%S-%f")
-    return run_dir / "output" / stamp
+    run_resolved = run_dir.resolve()
+    root = discover_stressum_repo_root()
+    if root is not None:
+        try:
+            run_resolved.relative_to(root.resolve())
+        except ValueError:
+            pass
+        else:
+            return root / "output" / run_resolved.name / stamp
+    return run_resolved / "output" / stamp
+
+
+def process_run(
+    run_dir: Path,
+    *,
+    out_dir: Path | None = None,
+    no_plots: bool = False,
+    seed: int | None = None,
+    apply_plot_style: bool = True,
+) -> int:
+    """Load one bundle, write artifacts. Returns 0 on success, 2 on recoverable CLI errors."""
+    try:
+        bundle = load_run_bundle(run_dir)
+    except FileNotFoundError as e:
+        print(e, file=sys.stderr)
+        return 2
+
+    if not bundle.summaries:
+        print(f"No replica summary.json files found under {run_dir}", file=sys.stderr)
+        return 2
+
+    resolved_out = out_dir.expanduser().resolve() if out_dir else default_output_dir(run_dir)
+    resolved_out.mkdir(parents=True, exist_ok=True)
+
+    agg = aggregate_bundle(bundle)
+
+    paths: dict[str, Path] = {}
+    rep_csv = resolved_out / "replica_breakdown.csv"
+    run_csv = resolved_out / "run_summary.csv"
+    write_replica_csv(agg, rep_csv)
+    write_run_summary_row(bundle, agg, run_csv)
+    paths["replica_breakdown.csv"] = rep_csv
+    paths["run_summary.csv"] = run_csv
+
+    node_df = node_metrics_numeric_summary(bundle.node_metrics_csvs)
+    if not node_df.empty:
+        node_csv = resolved_out / "node_metrics_summary.csv"
+        write_node_summary_csv(node_df, node_csv)
+        paths["node_metrics_summary.csv"] = node_csv
+
+    if apply_plot_style:
+        apply_paper_style(seed=seed)
+    if not no_plots:
+        tp = resolved_out / "throughput_per_replica.png"
+        lp = resolved_out / "latency_percentiles_per_replica.png"
+        ep = resolved_out / "error_rate_per_replica.png"
+        plot_throughput(agg, tp)
+        plot_latency_percentiles(agg, lp)
+        plot_error_rates(agg, ep)
+        paths["throughput_per_replica.png"] = tp
+        paths["latency_percentiles_per_replica.png"] = lp
+        paths["error_rate_per_replica.png"] = ep
+
+        pgp = resolved_out / "pg_node_timeseries.png"
+        if plot_pg_backends(bundle, pgp):
+            paths["pg_node_timeseries.png"] = pgp
+
+        jvmp = resolved_out / "jvm_heap_timeseries.png"
+        if plot_jvm_heap(bundle, jvmp):
+            paths["jvm_heap_timeseries.png"] = jvmp
+
+    narrative_path = resolved_out / "narrative.md"
+    paths["narrative.md"] = narrative_path
+    tables_md = resolved_out / "tables.md"
+    paths["tables.md"] = tables_md
+    write_tables_readme(paths, tables_md)
+    write_narrative(bundle, agg, paths, narrative_path)
+
+    print(f"Wrote artifacts to {resolved_out}")
+    return 0
+
+
+def main_batch(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Generate artifacts for every immediate subdirectory of a results folder "
+            "that looks like a Stressar run bundle."
+        ),
+    )
+    parser.add_argument(
+        "results_root",
+        nargs="?",
+        type=Path,
+        default=Path("results"),
+        help="Directory containing run subfolders (default: ./results).",
+    )
+    parser.add_argument(
+        "--no-plots",
+        action="store_true",
+        help="Skip PNG figure generation.",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Optional RNG seed for deterministic plot styling.",
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help=argparse.SUPPRESS,
+    )
+    args = parser.parse_args(argv)
+
+    if args.out is not None:
+        parser.error(
+            "`batch` mode does not support --out (each run uses its own session folder under "
+            "the project ``output/`` tree by default)."
+        )
+
+    results_root = args.results_root.expanduser().resolve()
+    if not results_root.is_dir():
+        print(f"Results directory not found: {results_root}", file=sys.stderr)
+        return 2
+
+    apply_paper_style(seed=args.seed)
+
+    any_failed = False
+    children = sorted(p for p in results_root.iterdir() if p.is_dir())
+    for child in children:
+        bundle = load_run_bundle(child)
+        if not bundle.summaries:
+            print(
+                f"Skip (no replica summary.json): {child}",
+                file=sys.stderr,
+            )
+            continue
+        code = process_run(
+            child,
+            out_dir=None,
+            no_plots=args.no_plots,
+            seed=args.seed,
+            apply_plot_style=False,
+        )
+        if code != 0:
+            any_failed = True
+
+    return 2 if any_failed else 0
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "batch":
+        return main_batch(argv[1:])
+
     parser = argparse.ArgumentParser(
         description=(
             "Generate CSV/Markdown tables, PNG figures, and narrative from one Stressar run bundle."
@@ -48,8 +217,8 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=None,
         help=(
-            "Output directory (default: <run_dir>/output/<YYYY-MM-dd-HHMMSS-microseconds>/ "
-            "per invocation)."
+            "Output directory (default: <project-root>/output/<run-folder>/<timestamp>/ when "
+            "the run path is inside this repository, else <run_dir>/output/<timestamp>/)."
         ),
     )
     parser.add_argument(
@@ -66,64 +235,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     run_dir = args.run_dir.expanduser().resolve()
-    try:
-        bundle = load_run_bundle(run_dir)
-    except FileNotFoundError as e:
-        print(e, file=sys.stderr)
-        return 2
-
-    if not bundle.summaries:
-        print(f"No replica summary.json files found under {run_dir}", file=sys.stderr)
-        return 2
-
-    out_dir = args.out.expanduser().resolve() if args.out else default_output_dir(run_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    agg = aggregate_bundle(bundle)
-
-    paths: dict[str, Path] = {}
-    rep_csv = out_dir / "replica_breakdown.csv"
-    run_csv = out_dir / "run_summary.csv"
-    write_replica_csv(agg, rep_csv)
-    write_run_summary_row(bundle, agg, run_csv)
-    paths["replica_breakdown.csv"] = rep_csv
-    paths["run_summary.csv"] = run_csv
-
-    node_df = node_metrics_numeric_summary(bundle.node_metrics_csvs)
-    if not node_df.empty:
-        node_csv = out_dir / "node_metrics_summary.csv"
-        write_node_summary_csv(node_df, node_csv)
-        paths["node_metrics_summary.csv"] = node_csv
-
-    apply_paper_style(seed=args.seed)
-    if not args.no_plots:
-        tp = out_dir / "throughput_per_replica.png"
-        lp = out_dir / "latency_percentiles_per_replica.png"
-        ep = out_dir / "error_rate_per_replica.png"
-        plot_throughput(agg, tp)
-        plot_latency_percentiles(agg, lp)
-        plot_error_rates(agg, ep)
-        paths["throughput_per_replica.png"] = tp
-        paths["latency_percentiles_per_replica.png"] = lp
-        paths["error_rate_per_replica.png"] = ep
-
-        pgp = out_dir / "pg_node_timeseries.png"
-        if plot_pg_backends(bundle, pgp):
-            paths["pg_node_timeseries.png"] = pgp
-
-        jvmp = out_dir / "jvm_heap_timeseries.png"
-        if plot_jvm_heap(bundle, jvmp):
-            paths["jvm_heap_timeseries.png"] = jvmp
-
-    narrative_path = out_dir / "narrative.md"
-    paths["narrative.md"] = narrative_path
-    tables_md = out_dir / "tables.md"
-    paths["tables.md"] = tables_md
-    write_tables_readme(paths, tables_md)
-    write_narrative(bundle, agg, paths, narrative_path)
-
-    print(f"Wrote artifacts to {out_dir}")
-    return 0
+    out = args.out.expanduser().resolve() if args.out else None
+    return process_run(
+        run_dir,
+        out_dir=out,
+        no_plots=args.no_plots,
+        seed=args.seed,
+        apply_plot_style=True,
+    )
 
 
 if __name__ == "__main__":

@@ -4,7 +4,9 @@ import re
 import shutil
 from pathlib import Path
 
-from stressum.cli import main
+import pytest
+
+from stressum.cli import default_output_dir, discover_stressum_repo_root, main
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "minimal-run"
 
@@ -41,3 +43,54 @@ def test_cli_no_plots(tmp_path: Path) -> None:
     out = _single_output_session(run_copy)
     assert (out / "narrative.md").is_file()
     assert not (out / "throughput_per_replica.png").exists()
+
+
+def test_batch_processes_all_run_subfolders(tmp_path: Path) -> None:
+    results = tmp_path / "results"
+    run_a = results / "run-a"
+    run_b = results / "run-b"
+    shutil.copytree(FIXTURE, run_a)
+    shutil.copytree(FIXTURE, run_b)
+    code = main(["batch", str(results)])
+    assert code == 0
+    out_a = _single_output_session(run_a)
+    out_b = _single_output_session(run_b)
+    assert (out_a / "narrative.md").is_file()
+    assert (out_b / "narrative.md").is_file()
+
+
+def test_batch_skips_empty_and_non_bundles(tmp_path: Path) -> None:
+    results = tmp_path / "results"
+    good = results / "z-good"
+    shutil.copytree(FIXTURE, good)
+    (results / "empty-dir").mkdir(parents=True)
+    bad = results / "not-a-run"
+    bad.mkdir()
+    (bad / "readme.txt").write_text("x", encoding="utf-8")
+    code = main(["batch", str(results)])
+    assert code == 0
+    assert _single_output_session(good)
+    assert not (results / "empty-dir" / "output").exists()
+    assert not (bad / "output").exists()
+
+
+def test_batch_missing_results_root(tmp_path: Path) -> None:
+    code = main(["batch", str(tmp_path / "does-not-exist")])
+    assert code == 2
+
+
+def test_batch_rejects_out() -> None:
+    with pytest.raises(SystemExit) as excinfo:
+        main(["batch", "--out", "/tmp"])
+    assert excinfo.value.code == 2
+
+
+def test_default_output_dir_uses_repo_output_when_run_inside_repo() -> None:
+    root = discover_stressum_repo_root()
+    assert root is not None
+    run = root / "tests" / "fixtures" / "minimal-run"
+    assert run.is_dir()
+    out = default_output_dir(run)
+    assert out.parent.parent == root / "output"
+    assert out.parent.name == "minimal-run"
+    assert _STAMP_RE.match(out.name)
