@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -33,14 +34,10 @@ def write_replica_csv(agg: RunAggregates, out: Path) -> None:
     pd.DataFrame(agg.rows).to_csv(out, index=False)
 
 
-def write_run_summary_row(
-    bundle: RunBundle,
-    agg: RunAggregates,
-    out: Path,
-) -> None:
+def run_summary_dict(bundle: RunBundle, agg: RunAggregates) -> dict[str, Any]:
     meta = bundle.metadata or {}
     first = bundle.summaries[0].get("runInfo") or {} if bundle.summaries else {}
-    row = {
+    return {
         "run_dir": bundle.run_dir.name,
         "scenario": meta.get("scenario"),
         "bench_replica_count": meta.get("bench_replica_count"),
@@ -59,7 +56,14 @@ def write_run_summary_row(
         "median_replica_p99_ms": agg.median_p99_ms,
         "median_replica_p999_ms": agg.median_p999_ms,
     }
-    pd.DataFrame([row]).to_csv(out, index=False)
+
+
+def write_run_summary_row(
+    bundle: RunBundle,
+    agg: RunAggregates,
+    out: Path,
+) -> None:
+    pd.DataFrame([run_summary_dict(bundle, agg)]).to_csv(out, index=False)
 
 
 def write_node_summary_csv(df: pd.DataFrame, out: Path) -> None:

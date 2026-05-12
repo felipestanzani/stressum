@@ -1,0 +1,36 @@
+{
+  "runs": [
+    {
+      "path": "results/hikari-prod-20260511-232048",
+      "label": "Hikari A"
+    },
+    {
+      "path": "results/hikari-prod-20260512-025608",
+      "label": "Hikari B"
+    },
+    {
+      "path": "results/ojp-prod-20260512-010917",
+      "label": "OJP A"
+    },
+    {
+      "path": "results/ojp-prod-20260512-044306",
+      "label": "OJP B"
+    },
+    {
+      "path": "results/ojp-sqs-prod-20260512-020256",
+      "label": "OJP SQS A"
+    },
+    {
+      "path": "results/ojp-sqs-prod-20260512-053639",
+      "label": "OJP SQS B"
+    },
+    {
+      "path": "results/pgbouncer-prod-20260512-001532",
+      "label": "PgBouncer A"
+    },
+    {
+      "path": "results/pgbouncer-prod-20260512-034919",
+      "label": "PgBouncer B"
+    }
+  ]
+}

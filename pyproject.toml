@@ -5,6 +5,7 @@ description = "Generate paper-oriented tables, PNG figures, and Markdown from St
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "hdrhistogram>=0.10",
     "matplotlib>=3.8",
     "pandas>=2.1",
 ]
