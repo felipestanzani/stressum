@@ -134,75 +134,6 @@ def process_run(
     return 0
 
 
-def main_batch(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Generate artifacts for every immediate subdirectory of a results folder "
-            "that looks like a Stressar run bundle."
-        ),
-    )
-    parser.add_argument(
-        "results_root",
-        nargs="?",
-        type=Path,
-        default=Path("results"),
-        help="Directory containing run subfolders (default: ./results).",
-    )
-    parser.add_argument(
-        "--no-plots",
-        action="store_true",
-        help="Skip PNG figure generation.",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=None,
-        help="Optional RNG seed for deterministic plot styling.",
-    )
-    parser.add_argument(
-        "--out",
-        type=Path,
-        default=None,
-        help=argparse.SUPPRESS,
-    )
-    args = parser.parse_args(argv)
-
-    if args.out is not None:
-        parser.error(
-            "`batch` mode does not support --out (each run uses its own session folder under "
-            "the project ``output/`` tree by default)."
-        )
-
-    results_root = args.results_root.expanduser().resolve()
-    if not results_root.is_dir():
-        print(f"Results directory not found: {results_root}", file=sys.stderr)
-        return 2
-
-    apply_paper_style(seed=args.seed)
-
-    any_failed = False
-    children = sorted(p for p in results_root.iterdir() if p.is_dir())
-    for child in children:
-        bundle = load_run_bundle(child)
-        if not bundle.summaries:
-            print(
-                f"Skip (no replica summary.json): {child}",
-                file=sys.stderr,
-            )
-            continue
-        code = process_run(
-            child,
-            out_dir=None,
-            no_plots=args.no_plots,
-            seed=args.seed,
-            apply_plot_style=False,
-        )
-        if code != 0:
-            any_failed = True
-
-    return 2 if any_failed else 0
-
-
 def main_compare(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -261,7 +192,11 @@ def main_compare(argv: list[str] | None = None) -> int:
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] == "batch":
-        return main_batch(argv[1:])
+        print(
+            "The `batch` subcommand was removed. Invoke `stressum` once per run directory.",
+            file=sys.stderr,
+        )
+        return 2
     if argv and argv[0] == "compare":
         return main_compare(argv[1:])
 

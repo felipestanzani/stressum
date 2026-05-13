@@ -30,5 +30,6 @@ def hdr_status_note(hdr_count: int) -> str:
     return (
         f"Found {hdr_count} HDR-related file(s) under the run directory; "
         "single-run figures here still use per-replica `summary.json` percentiles. "
-        "Use `stressum compare` to merge `.hlog` histograms across replicas for cross-scenario plots."
+        "Use `stressum compare` to merge `.hlog` histograms across replicas for "
+        "cross-scenario plots."
     )

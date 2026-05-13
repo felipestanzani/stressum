@@ -24,22 +24,6 @@ Options:
 - `--no-plots` — skip PNG generation
 - `--seed N` — RNG seed for deterministic styling where applicable
 
-## All runs under `results/`
-
-Process every immediate subdirectory of a folder that looks like a Stressar run bundle (each must have at least one `replica-*/summary.json`). Non-bundles are skipped with a message on standard error.
-
-```bash
-uv run stressum batch
-```
-
-This uses `./results` relative to the current working directory. To use another root:
-
-```bash
-uv run stressum batch /path/to/results
-```
-
-Each run gets its own session folder under the project `output/<run-folder>/…` (same rule as a single run: paths inside this repo use the root `output/` tree). The `--out` option is not supported in batch mode. `--no-plots` and `--seed` apply to the whole batch.
-
 ## Compare multiple runs (cross-scenario)
 
 Create a JSON config (by default **`stressum-comparison.json`** at the repository root, or pass `--config`). Each `path` is resolved **relative to the directory containing the config file**. At least two runs are required.

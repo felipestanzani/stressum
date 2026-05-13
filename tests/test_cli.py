@@ -67,44 +67,11 @@ def test_cli_no_plots(tmp_path: Path) -> None:
     assert not (out / "throughput_per_replica.png").exists()
 
 
-def test_batch_processes_all_run_subfolders(tmp_path: Path) -> None:
-    results = tmp_path / "results"
-    run_a = results / "run-a"
-    run_b = results / "run-b"
-    shutil.copytree(FIXTURE, run_a)
-    shutil.copytree(FIXTURE, run_b)
-    code = main(["batch", str(results)])
-    assert code == 0
-    out_a = _single_output_session(run_a)
-    out_b = _single_output_session(run_b)
-    assert (out_a / "narrative.md").is_file()
-    assert (out_b / "narrative.md").is_file()
-
-
-def test_batch_skips_empty_and_non_bundles(tmp_path: Path) -> None:
-    results = tmp_path / "results"
-    good = results / "z-good"
-    shutil.copytree(FIXTURE, good)
-    (results / "empty-dir").mkdir(parents=True)
-    bad = results / "not-a-run"
-    bad.mkdir()
-    (bad / "readme.txt").write_text("x", encoding="utf-8")
-    code = main(["batch", str(results)])
-    assert code == 0
-    assert _single_output_session(good)
-    assert not (results / "empty-dir" / "output").exists()
-    assert not (bad / "output").exists()
-
-
-def test_batch_missing_results_root(tmp_path: Path) -> None:
-    code = main(["batch", str(tmp_path / "does-not-exist")])
+def test_batch_subcommand_removed(capsys: pytest.CaptureFixture[str]) -> None:
+    code = main(["batch"])
     assert code == 2
-
-
-def test_batch_rejects_out() -> None:
-    with pytest.raises(SystemExit) as excinfo:
-        main(["batch", "--out", "/tmp"])
-    assert excinfo.value.code == 2
+    err = capsys.readouterr().err
+    assert "batch" in err.lower() and "removed" in err.lower()
 
 
 def test_default_output_dir_uses_repo_output_when_run_inside_repo() -> None:
