@@ -19,8 +19,7 @@ Use this as the **orientation index** before searching the tree.
 
 ## stressum CLI
 
-- **Default (comparison):** `uv run stressum` or `uv run stressum --config …` — cross-scenario artifacts under `output/comparison-<timestamp>/` (see root `README.md`).
-- **Single run:** `uv run stressum run <run_dir>` — default output `<run_dir>/output/<YYYY-MM-dd-HHMMSS-microseconds>/` when the bundle is outside the repo checkout, else `<repo>/output/<run-folder>/<timestamp>/` (override `--out`). Key files: `replica_breakdown.csv`, `run_summary.csv`, `node_metrics_summary.csv` (if node CSVs exist), `tables.md`, `narrative.md`, PNGs unless `--no-plots`.
+- **Comparison only:** `uv run stressum` or `uv run stressum --config …` — cross-scenario artifacts under `output/comparison-<timestamp>/` (see root `README.md`).
 
 ## Cross-rules
 

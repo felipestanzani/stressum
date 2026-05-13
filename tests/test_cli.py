@@ -9,14 +9,12 @@ import pytest
 
 from stressum.cli import (
     comparison_output_dir,
-    default_output_dir,
     discover_stressum_repo_root,
     main,
 )
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "minimal-run"
 
-_STAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-\d{6}$")
 _COMPARISON_DIR_RE = re.compile(r"^comparison-\d{4}-\d{2}-\d{2}-\d{6}-\d{6}$")
 
 
@@ -35,61 +33,24 @@ def _write_single_interval_hlog(path: Path) -> None:
         w.output_interval_histogram(h, 0.0, 1.0, 1_000_000.0)
 
 
-def _single_output_session(run_copy: Path) -> Path:
-    out_root = run_copy / "output"
-    assert out_root.is_dir()
-    children = [p for p in out_root.iterdir() if p.is_dir()]
-    assert len(children) == 1
-    assert _STAMP_RE.match(children[0].name)
-    return children[0]
-
-
-def test_cli_writes_artifacts(tmp_path: Path) -> None:
-    run_copy = tmp_path / "minimal-run"
-    shutil.copytree(FIXTURE, run_copy)
-    code = main(["run", str(run_copy), "--seed", "0"])
-    assert code == 0
-    out = _single_output_session(run_copy)
-    assert (out / "narrative.md").is_file()
-    assert (out / "tables.md").is_file()
-    assert (out / "replica_breakdown.csv").is_file()
-    assert (out / "run_summary.csv").is_file()
-    assert (out / "throughput_per_replica.png").is_file()
-
-
-def test_cli_no_plots(tmp_path: Path) -> None:
-    run_copy = tmp_path / "minimal-run-np"
-    shutil.copytree(FIXTURE, run_copy)
-    code = main(["run", str(run_copy), "--no-plots"])
-    assert code == 0
-    out = _single_output_session(run_copy)
-    assert (out / "narrative.md").is_file()
-    assert not (out / "throughput_per_replica.png").exists()
-
-
-def test_batch_subcommand_removed(capsys: pytest.CaptureFixture[str]) -> None:
-    code = main(["batch"])
-    assert code == 2
+def _assert_unrecognized_subcommand(argv: list[str], capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(argv)
+    assert exc.value.code == 2
     err = capsys.readouterr().err
-    assert "batch" in err.lower() and "removed" in err.lower()
+    assert "unrecognized arguments" in err
 
 
-def test_compare_subcommand_removed(capsys: pytest.CaptureFixture[str]) -> None:
-    code = main(["compare"])
-    assert code == 2
-    err = capsys.readouterr().err
-    assert "compare" in err.lower() and "removed" in err.lower()
+def test_batch_token_rejected_by_argparse(capsys: pytest.CaptureFixture[str]) -> None:
+    _assert_unrecognized_subcommand(["batch"], capsys)
 
 
-def test_default_output_dir_uses_repo_output_when_run_inside_repo() -> None:
-    root = discover_stressum_repo_root()
-    assert root is not None
-    run = root / "tests" / "fixtures" / "minimal-run"
-    assert run.is_dir()
-    out = default_output_dir(run)
-    assert out.parent.parent == root / "output"
-    assert out.parent.name == "minimal-run"
-    assert _STAMP_RE.match(out.name)
+def test_compare_token_rejected_by_argparse(capsys: pytest.CaptureFixture[str]) -> None:
+    _assert_unrecognized_subcommand(["compare"], capsys)
+
+
+def test_run_token_rejected_by_argparse(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    _assert_unrecognized_subcommand(["run", str(tmp_path / "some-run")], capsys)
 
 
 def test_comparison_output_dir_pattern() -> None:
