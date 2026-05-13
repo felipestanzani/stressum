@@ -19,7 +19,7 @@ Use this as the **orientation index** before searching the tree.
 
 ## stressum CLI
 
-- **Comparison only:** `uv run stressum` or `uv run stressum --config …` — cross-scenario artifacts under `output/comparison-<timestamp>/` (see root `README.md`).
+- **Comparison only:** `uv run stressum` — reads `stressum-comparison.json` at the repo root (or cwd); cross-scenario artifacts under `output/comparison-<timestamp>/` (see root `README.md`).
 
 ## Cross-rules
 

@@ -12,7 +12,7 @@ uv sync
 
 ## Compare multiple runs (cross-scenario)
 
-Create a JSON config (by default **`stressum-comparison.json`** at the repository root, or pass `--config`). Each `path` is resolved **relative to the directory containing the config file**. At least two runs are required.
+Create **`stressum-comparison.json`** at the repository root (or in the current working directory when the checkout root cannot be detected). Each `path` is resolved **relative to the directory containing the config file**. At least two runs are required.
 
 ```json
 {
@@ -25,17 +25,15 @@ Create a JSON config (by default **`stressum-comparison.json`** at the repositor
 
 ```bash
 uv run stressum
-# or
-uv run stressum --config /path/to/my-comparison.json --out /path/to/output-dir
 ```
 
-Output defaults to `<project-root>/output/comparison-<YYYY-MM-dd-HHMMSS-microseconds>/` and includes:
+Output is written to `<project-root>/output/comparison-<YYYY-MM-dd-HHMMSS-microseconds>/` (or `./output/...` from the current working directory when the checkout root cannot be detected) and includes:
 
 - `comparison_metadata.json` — scenarios, paths, HDR merge status, fairness warnings when `workload` / `loadMode` / `targetRps` differ across runs
 - `comparison_summary.csv` — one row per run (throughput, error rate, median replica percentiles, optional **merged** percentiles when `.hlog` HDR logs exist)
 - PNG figures: total throughput, latency (HDR merged across replicas **within** each run when logs are present; otherwise median of `summary.json` percentiles), error rate, optional open-loop / PostgreSQL backends / JVM heap / timeseries plots when data exists
 
-Options: `--config`, `--out`, `--no-plots`, `--seed`.
+Options: `--no-plots`, `--seed`.
 
 ## Interpretation
 

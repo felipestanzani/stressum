@@ -18,6 +18,12 @@ FIXTURE = Path(__file__).resolve().parent / "fixtures" / "minimal-run"
 _COMPARISON_DIR_RE = re.compile(r"^comparison-\d{4}-\d{2}-\d{2}-\d{6}-\d{6}$")
 
 
+def _latest_comparison_out(fake_root: Path) -> Path:
+    outs = sorted((fake_root / "output").glob("comparison-*"))
+    assert outs, "expected output/comparison-* under fake root"
+    return outs[-1]
+
+
 def _write_single_interval_hlog(path: Path) -> None:
     from hdrh.histogram import HdrHistogram
     from hdrh.log import HistogramLogWriter
@@ -61,7 +67,8 @@ def test_comparison_output_dir_pattern() -> None:
     assert _COMPARISON_DIR_RE.match(out.name)
 
 
-def test_compare_writes_artifacts(tmp_path: Path) -> None:
+def test_compare_writes_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("stressum.cli.discover_stressum_repo_root", lambda: tmp_path)
     cfg_dir = tmp_path
     run_a = cfg_dir / "cmp-a"
     run_b = cfg_dir / "cmp-b"
@@ -72,9 +79,9 @@ def test_compare_writes_artifacts(tmp_path: Path) -> None:
         json.dumps({"runs": [{"path": "cmp-a"}, {"path": "cmp-b", "label": "B"}]}),
         encoding="utf-8",
     )
-    out = cfg_dir / "compare-out"
-    code = main(["--config", str(cfg_path), "--out", str(out), "--seed", "0"])
+    code = main(["--seed", "0"])
     assert code == 0
+    out = _latest_comparison_out(tmp_path)
     meta = json.loads((out / "comparison_metadata.json").read_text(encoding="utf-8"))
     assert len(meta["scenarios"]) == 2
     assert meta["scenarios"][0]["latency_percentiles_source"] == "summary_json_median"
@@ -90,17 +97,18 @@ def test_compare_writes_artifacts(tmp_path: Path) -> None:
     assert (out / "comparison_postgres_process_rss.png").is_file()
 
 
-def test_compare_no_plots(tmp_path: Path) -> None:
+def test_compare_no_plots(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("stressum.cli.discover_stressum_repo_root", lambda: tmp_path)
     cfg_dir = tmp_path
     run_a = cfg_dir / "a"
     run_b = cfg_dir / "b"
     shutil.copytree(FIXTURE, run_a)
     shutil.copytree(FIXTURE, run_b)
-    cfg_path = cfg_dir / "cfg.json"
+    cfg_path = cfg_dir / "stressum-comparison.json"
     cfg_path.write_text(json.dumps({"runs": [{"path": "a"}, {"path": "b"}]}), encoding="utf-8")
-    out = cfg_dir / "out-np"
-    code = main(["--config", str(cfg_path), "--out", str(out), "--no-plots"])
+    code = main(["--no-plots"])
     assert code == 0
+    out = _latest_comparison_out(tmp_path)
     assert (out / "comparison_metadata.json").is_file()
     assert not (out / "comparison_latency_p50.png").exists()
     assert not (out / "comparison_latency_p95.png").exists()
@@ -108,7 +116,8 @@ def test_compare_no_plots(tmp_path: Path) -> None:
     assert not (out / "comparison_latency_p999.png").exists()
 
 
-def test_compare_hdr_merged_metadata(tmp_path: Path) -> None:
+def test_compare_hdr_merged_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("stressum.cli.discover_stressum_repo_root", lambda: tmp_path)
     cfg_dir = tmp_path
     run_a = cfg_dir / "ha"
     run_b = cfg_dir / "hb"
@@ -118,11 +127,11 @@ def test_compare_hdr_merged_metadata(tmp_path: Path) -> None:
     _write_single_interval_hlog(run_a / "replica-1" / "latency.hlog")
     _write_single_interval_hlog(run_b / "replica-0" / "latency.hlog")
     _write_single_interval_hlog(run_b / "replica-1" / "latency.hlog")
-    cfg_path = cfg_dir / "cfg.json"
+    cfg_path = cfg_dir / "stressum-comparison.json"
     cfg_path.write_text(json.dumps({"runs": [{"path": "ha"}, {"path": "hb"}]}), encoding="utf-8")
-    out = cfg_dir / "out-hdr"
-    code = main(["--config", str(cfg_path), "--out", str(out)])
+    code = main([])
     assert code == 0
+    out = _latest_comparison_out(tmp_path)
     meta = json.loads((out / "comparison_metadata.json").read_text(encoding="utf-8"))
     for sc in meta["scenarios"]:
         assert sc["latency_percentiles_source"] == "hdr_merged"
@@ -130,19 +139,22 @@ def test_compare_hdr_merged_metadata(tmp_path: Path) -> None:
         assert abs(float(ml["p50"]) - 2.0) < 0.05
 
 
-def test_compare_missing_config(tmp_path: Path) -> None:
-    code = main(["--config", str(tmp_path / "missing.json")])
+def test_compare_missing_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("stressum.cli.discover_stressum_repo_root", lambda: tmp_path)
+    code = main([])
     assert code == 2
 
 
-def test_compare_config_requires_two_runs(tmp_path: Path) -> None:
-    cfg = tmp_path / "bad.json"
+def test_compare_config_requires_two_runs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("stressum.cli.discover_stressum_repo_root", lambda: tmp_path)
+    cfg = tmp_path / "stressum-comparison.json"
     cfg.write_text(json.dumps({"runs": [{"path": "only-one"}]}), encoding="utf-8")
-    code = main(["--config", str(cfg)])
+    code = main([])
     assert code == 2
 
 
-def test_compare_fairness_warning(tmp_path: Path) -> None:
+def test_compare_fairness_warning(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("stressum.cli.discover_stressum_repo_root", lambda: tmp_path)
     cfg_dir = tmp_path
     run_a = cfg_dir / "fa"
     run_b = cfg_dir / "fb"
@@ -151,9 +163,9 @@ def test_compare_fairness_warning(tmp_path: Path) -> None:
     summ = json.loads((run_b / "replica-0" / "summary.json").read_text(encoding="utf-8"))
     summ["runInfo"]["workload"] = "W2_MIXED"
     (run_b / "replica-0" / "summary.json").write_text(json.dumps(summ), encoding="utf-8")
-    cfg_path = cfg_dir / "cfg.json"
+    cfg_path = cfg_dir / "stressum-comparison.json"
     cfg_path.write_text(json.dumps({"runs": [{"path": "fa"}, {"path": "fb"}]}), encoding="utf-8")
-    out = cfg_dir / "out-w"
-    assert main(["--config", str(cfg_path), "--out", str(out), "--no-plots"]) == 0
+    assert main(["--no-plots"]) == 0
+    out = _latest_comparison_out(tmp_path)
     meta = json.loads((out / "comparison_metadata.json").read_text(encoding="utf-8"))
     assert any("workload" in w for w in meta["global_warnings"])

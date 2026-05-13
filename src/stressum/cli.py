@@ -36,26 +36,10 @@ def comparison_output_dir() -> Path:
 def main_compare(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Default stressum mode: compare two or more Stressar run bundles from a JSON "
-            "config (HDR merge across replicas per run when logs are present)."
+            "Compare two or more Stressar run bundles using stressum-comparison.json "
+            "at the repository root (or current working directory if the checkout "
+            "cannot be detected). HDR merge across replicas per run when logs are present."
         ),
-    )
-    root = discover_stressum_repo_root()
-    default_cfg = (root / "stressum-comparison.json") if root is not None else None
-    parser.add_argument(
-        "--config",
-        type=Path,
-        default=default_cfg,
-        help=(
-            "Path to comparison JSON (default: <repo-root>/stressum-comparison.json "
-            "when running from this checkout)."
-        ),
-    )
-    parser.add_argument(
-        "--out",
-        type=Path,
-        default=None,
-        help="Output directory (default: <repo>/output/comparison-<timestamp>/).",
     )
     parser.add_argument(
         "--no-plots",
@@ -70,18 +54,13 @@ def main_compare(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if args.config is None:
-        print(
-            "No default config path (checkout root not detected). Pass --config /path/to.json",
-            file=sys.stderr,
-        )
-        return 2
-    cfg_path = args.config.expanduser().resolve()
+    base = discover_stressum_repo_root() or Path.cwd()
+    cfg_path = (base / "stressum-comparison.json").expanduser().resolve()
     if not cfg_path.is_file():
         print(f"Comparison config not found: {cfg_path}", file=sys.stderr)
         return 2
 
-    out = args.out.expanduser().resolve() if args.out else comparison_output_dir()
+    out = comparison_output_dir()
     apply_paper_style(seed=args.seed)
 
     code, _meta = run_comparison(cfg_path, out, no_plots=args.no_plots)
