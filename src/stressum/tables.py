@@ -73,9 +73,11 @@ def run_summary_dict(
         row["proxy_service_cpu_legacy_peak_sum_pct"] = proxy_cpu[
             "service_cpu_legacy_peak_sum_pct"
         ]
+        row["proxy_host_cpu_aligned_peak_pct"] = proxy_cpu.get("host_cpu_aligned_peak_pct", "")
     else:
         row["proxy_service_cpu_aligned_peak_pct"] = ""
         row["proxy_service_cpu_legacy_peak_sum_pct"] = ""
+        row["proxy_host_cpu_aligned_peak_pct"] = ""
     return row
 
 

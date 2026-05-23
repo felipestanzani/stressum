@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-05-23T12:41:59.204662+00:00",
+  "generated_at": "2026-05-23T12:53:08.670345+00:00",
   "stressum_version": "0.1.0",
   "config_path": "/Users/Stanzani/Development/stressar-results/stressum-comparison.json",
-  "output_dir": "/Users/Stanzani/Development/stressar-results/output/comparison-2026-05-23-094152-655488",
+  "output_dir": "/Users/Stanzani/Development/stressar-results/output/comparison-2026-05-23-095300-672917",
   "global_warnings": [],
   "scenarios": [
     {
@@ -28,6 +28,7 @@
       "total_error_rps": 14.580843933051149,
       "total_completed_rps": 16.26464764007419,
       "total_attempted_rps": 15.987487436525425,
+      "total_successful_requests": 3797,
       "aggregate_error_rate": 0.8964746298770346,
       "errors_by_type": {
         "SQLTransientConnectionException": 32880
@@ -68,6 +69,7 @@
       "total_error_rps": 13.868206674450406,
       "total_completed_rps": 16.254887996858727,
       "total_attempted_rps": 15.9772844015853,
+      "total_successful_requests": 5382,
       "aggregate_error_rate": 0.8531714636475242,
       "errors_by_type": {
         "SQLTransientConnectionException": 31273
@@ -108,6 +110,7 @@
       "total_error_rps": 13.680630757244028,
       "total_completed_rps": 16.250460643517584,
       "total_attempted_rps": 15.972413463995782,
+      "total_successful_requests": 5795,
       "aggregate_error_rate": 0.8418610997407558,
       "errors_by_type": {
         "SQLTransientConnectionException": 30850
@@ -148,6 +151,7 @@
       "total_error_rps": 13.826963594635634,
       "total_completed_rps": 16.256216563006877,
       "total_attempted_rps": 15.975508802856815,
+      "total_successful_requests": 5478,
       "aggregate_error_rate": 0.8505646789241094,
       "errors_by_type": {
         "SQLTransientConnectionException": 31180
@@ -188,6 +192,7 @@
       "total_error_rps": 13.777289166413958,
       "total_completed_rps": 16.2451211567466,
       "total_attempted_rps": 15.971065389062309,
+      "total_successful_requests": 5565,
       "aggregate_error_rate": 0.8480877896978134,
       "errors_by_type": {
         "SQLTransientConnectionException": 31068
@@ -228,6 +233,7 @@
       "total_error_rps": 14.185073194400593,
       "total_completed_rps": 16.186924400273586,
       "total_attempted_rps": 16.18152899843727,
+      "total_successful_requests": 4454,
       "aggregate_error_rate": 0.8763327410039983,
       "errors_by_type": {
         "SQLException": 3825,
@@ -253,7 +259,8 @@
         "host_cpu_aligned_peak_pct": 393.41999999999996
       },
       "proxy_service_cpu_aligned_peak_pct": 382.5,
-      "proxy_service_cpu_legacy_peak_sum_pct": 590.1800000000001
+      "proxy_service_cpu_legacy_peak_sum_pct": 590.1800000000001,
+      "proxy_host_cpu_aligned_peak_pct": 393.41999999999996
     },
     {
       "label": "OJP B",
@@ -278,6 +285,7 @@
       "total_error_rps": 15.166142406779285,
       "total_completed_rps": 15.979881358589447,
       "total_attempted_rps": 15.96613427002897,
+      "total_successful_requests": 1835,
       "aggregate_error_rate": 0.9490772859719717,
       "errors_by_type": {
         "SQLException": 5361,
@@ -303,7 +311,8 @@
         "host_cpu_aligned_peak_pct": 374.46
       },
       "proxy_service_cpu_aligned_peak_pct": 361.78,
-      "proxy_service_cpu_legacy_peak_sum_pct": 587.2
+      "proxy_service_cpu_legacy_peak_sum_pct": 587.2,
+      "proxy_host_cpu_aligned_peak_pct": 374.46
     },
     {
       "label": "OJP C",
@@ -328,6 +337,7 @@
       "total_error_rps": 14.101815964233538,
       "total_completed_rps": 16.15657961678248,
       "total_attempted_rps": 16.143574630293884,
+      "total_successful_requests": 4582,
       "aggregate_error_rate": 0.8728387866677768,
       "errors_by_type": {
         "SQLException": 3711,
@@ -353,7 +363,8 @@
         "host_cpu_aligned_peak_pct": 258.37
       },
       "proxy_service_cpu_aligned_peak_pct": 246.31,
-      "proxy_service_cpu_legacy_peak_sum_pct": 588.37
+      "proxy_service_cpu_legacy_peak_sum_pct": 588.37,
+      "proxy_host_cpu_aligned_peak_pct": 258.37
     },
     {
       "label": "OJP D",
@@ -378,6 +389,7 @@
       "total_error_rps": 14.951500395215305,
       "total_completed_rps": 15.973662369170649,
       "total_attempted_rps": 15.966123649694392,
+      "total_successful_requests": 2305,
       "aggregate_error_rate": 0.9360095499847312,
       "errors_by_type": {
         "SQLException": 4953,
@@ -403,7 +415,8 @@
         "host_cpu_aligned_peak_pct": 399.12
       },
       "proxy_service_cpu_aligned_peak_pct": 391.4,
-      "proxy_service_cpu_legacy_peak_sum_pct": 590.52
+      "proxy_service_cpu_legacy_peak_sum_pct": 590.52,
+      "proxy_host_cpu_aligned_peak_pct": 399.12
     },
     {
       "label": "OJP E",
@@ -428,6 +441,7 @@
       "total_error_rps": 12.651289788716598,
       "total_completed_rps": 15.972314297661612,
       "total_attempted_rps": 15.966105949225721,
+      "total_successful_requests": 7489,
       "aggregate_error_rate": 0.7920761841301571,
       "errors_by_type": {
         "SQLException": 1636,
@@ -453,7 +467,8 @@
         "host_cpu_aligned_peak_pct": 402.96000000000004
       },
       "proxy_service_cpu_aligned_peak_pct": 392.47,
-      "proxy_service_cpu_legacy_peak_sum_pct": 589.8
+      "proxy_service_cpu_legacy_peak_sum_pct": 589.8,
+      "proxy_host_cpu_aligned_peak_pct": 402.96000000000004
     },
     {
       "label": "OJP SQS A",
@@ -478,6 +493,7 @@
       "total_error_rps": 11.14055764390736,
       "total_completed_rps": 16.203827218085312,
       "total_attempted_rps": 16.197979326676556,
+      "total_successful_requests": 11254,
       "aggregate_error_rate": 0.6875364411250243,
       "errors_by_type": {
         "SQLException": 309,
@@ -503,7 +519,8 @@
         "host_cpu_aligned_peak_pct": 519.47
       },
       "proxy_service_cpu_aligned_peak_pct": 502.78,
-      "proxy_service_cpu_legacy_peak_sum_pct": 589.22
+      "proxy_service_cpu_legacy_peak_sum_pct": 589.22,
+      "proxy_host_cpu_aligned_peak_pct": 519.47
     },
     {
       "label": "OJP SQS B",
@@ -528,6 +545,7 @@
       "total_error_rps": 11.46820555289857,
       "total_completed_rps": 16.200689574546356,
       "total_attempted_rps": 16.196640062350575,
+      "total_successful_requests": 10520,
       "aggregate_error_rate": 0.7078832643767529,
       "errors_by_type": {
         "SQLException": 358,
@@ -553,7 +571,8 @@
         "host_cpu_aligned_peak_pct": 509.36
       },
       "proxy_service_cpu_aligned_peak_pct": 490.75,
-      "proxy_service_cpu_legacy_peak_sum_pct": 587.6700000000001
+      "proxy_service_cpu_legacy_peak_sum_pct": 587.6700000000001,
+      "proxy_host_cpu_aligned_peak_pct": 509.36
     },
     {
       "label": "OJP SQS C",
@@ -578,6 +597,7 @@
       "total_error_rps": 11.103957409357074,
       "total_completed_rps": 16.19506001865046,
       "total_attempted_rps": 16.18966406351319,
+      "total_successful_requests": 11322,
       "aggregate_error_rate": 0.6856397156819192,
       "errors_by_type": {
         "SQLException": 221,
@@ -603,7 +623,8 @@
         "host_cpu_aligned_peak_pct": 533.31
       },
       "proxy_service_cpu_aligned_peak_pct": 519.1099999999999,
-      "proxy_service_cpu_legacy_peak_sum_pct": 588.32
+      "proxy_service_cpu_legacy_peak_sum_pct": 588.32,
+      "proxy_host_cpu_aligned_peak_pct": 533.31
     },
     {
       "label": "OJP SQS D",
@@ -628,6 +649,7 @@
       "total_error_rps": 10.961507275864193,
       "total_completed_rps": 16.204266931341042,
       "total_attempted_rps": 16.202466857254027,
+      "total_successful_requests": 11650,
       "aggregate_error_rate": 0.6764607864918907,
       "errors_by_type": {
         "SQLException": 119,
@@ -653,7 +675,8 @@
         "host_cpu_aligned_peak_pct": 503.8
       },
       "proxy_service_cpu_aligned_peak_pct": 482.29999999999995,
-      "proxy_service_cpu_legacy_peak_sum_pct": 587.44
+      "proxy_service_cpu_legacy_peak_sum_pct": 587.44,
+      "proxy_host_cpu_aligned_peak_pct": 503.8
     },
     {
       "label": "OJP SQS E",
@@ -678,6 +701,7 @@
       "total_error_rps": 11.155920469891113,
       "total_completed_rps": 16.125288967055795,
       "total_attempted_rps": 16.1234976663485,
+      "total_successful_requests": 11097,
       "aggregate_error_rate": 0.6918184847811597,
       "errors_by_type": {
         "SQLException": 189,
@@ -703,7 +727,8 @@
         "host_cpu_aligned_peak_pct": 486.44
       },
       "proxy_service_cpu_aligned_peak_pct": 424.39,
-      "proxy_service_cpu_legacy_peak_sum_pct": 590.39
+      "proxy_service_cpu_legacy_peak_sum_pct": 590.39,
+      "proxy_host_cpu_aligned_peak_pct": 486.44
     },
     {
       "label": "pgBouncer A",
@@ -731,6 +756,7 @@
       "total_error_rps": 13.043822891818477,
       "total_completed_rps": 16.239812285303096,
       "total_attempted_rps": 15.966199762640617,
+      "total_successful_requests": 7207,
       "aggregate_error_rate": 0.8032003495262281,
       "errors_by_type": {
         "SQLTransientConnectionException": 29414
@@ -754,7 +780,8 @@
         "host_cpu_aligned_peak_pct": 163.07999999999998
       },
       "proxy_service_cpu_aligned_peak_pct": 136.61,
-      "proxy_service_cpu_legacy_peak_sum_pct": 187.29000000000002
+      "proxy_service_cpu_legacy_peak_sum_pct": 187.29000000000002,
+      "proxy_host_cpu_aligned_peak_pct": 163.07999999999998
     },
     {
       "label": "pgBouncer B",
@@ -782,6 +809,7 @@
       "total_error_rps": 13.528080110202088,
       "total_completed_rps": 16.24513736212803,
       "total_attempted_rps": 15.966203302797148,
+      "total_successful_requests": 6127,
       "aggregate_error_rate": 0.8327464308137472,
       "errors_by_type": {
         "SQLTransientConnectionException": 30506
@@ -805,7 +833,8 @@
         "host_cpu_aligned_peak_pct": 141.23
       },
       "proxy_service_cpu_aligned_peak_pct": 124.39,
-      "proxy_service_cpu_legacy_peak_sum_pct": 212.52
+      "proxy_service_cpu_legacy_peak_sum_pct": 212.52,
+      "proxy_host_cpu_aligned_peak_pct": 141.23
     },
     {
       "label": "pgBouncer C",
@@ -833,6 +862,7 @@
       "total_error_rps": 12.901028552372624,
       "total_completed_rps": 16.24069739700064,
       "total_attempted_rps": 15.966197992562352,
+      "total_successful_requests": 7531,
       "aggregate_error_rate": 0.7943641973623133,
       "errors_by_type": {
         "SQLTransientConnectionException": 29092
@@ -856,7 +886,8 @@
         "host_cpu_aligned_peak_pct": 153.54
       },
       "proxy_service_cpu_aligned_peak_pct": 132.86,
-      "proxy_service_cpu_legacy_peak_sum_pct": 178.6
+      "proxy_service_cpu_legacy_peak_sum_pct": 178.6,
+      "proxy_host_cpu_aligned_peak_pct": 153.54
     },
     {
       "label": "pgBouncer D",
@@ -884,6 +915,7 @@
       "total_error_rps": 13.061117705512043,
       "total_completed_rps": 16.243803391345008,
       "total_attempted_rps": 15.966199762640617,
+      "total_successful_requests": 7177,
       "aggregate_error_rate": 0.8040677040677041,
       "errors_by_type": {
         "SQLTransientConnectionException": 29453
@@ -907,7 +939,8 @@
         "host_cpu_aligned_peak_pct": 148.41000000000003
       },
       "proxy_service_cpu_aligned_peak_pct": 134.11,
-      "proxy_service_cpu_legacy_peak_sum_pct": 196.27
+      "proxy_service_cpu_legacy_peak_sum_pct": 196.27,
+      "proxy_host_cpu_aligned_peak_pct": 148.41000000000003
     },
     {
       "label": "pgBouncer E",
@@ -935,6 +968,7 @@
       "total_error_rps": 13.16486418919292,
       "total_completed_rps": 16.245106740221413,
       "total_attempted_rps": 15.966173211655033,
+      "total_successful_requests": 6946,
       "aggregate_error_rate": 0.8103895394862556,
       "errors_by_type": {
         "SQLTransientConnectionException": 29687
@@ -958,7 +992,8 @@
         "host_cpu_aligned_peak_pct": 173.16
       },
       "proxy_service_cpu_aligned_peak_pct": 111.50999999999999,
-      "proxy_service_cpu_legacy_peak_sum_pct": 207.42
+      "proxy_service_cpu_legacy_peak_sum_pct": 207.42,
+      "proxy_host_cpu_aligned_peak_pct": 173.16
     }
   ],
   "artifacts": {
@@ -1038,6 +1073,22 @@
     "comparison_postgres_process_rss/comparison_postgres_process_rss__pgBouncer_C.png": "comparison_postgres_process_rss/comparison_postgres_process_rss__pgBouncer_C.png",
     "comparison_postgres_process_rss/comparison_postgres_process_rss__pgBouncer_D.png": "comparison_postgres_process_rss/comparison_postgres_process_rss__pgBouncer_D.png",
     "comparison_postgres_process_rss/comparison_postgres_process_rss__pgBouncer_E.png": "comparison_postgres_process_rss/comparison_postgres_process_rss__pgBouncer_E.png",
+    "comparison_proxy_host_cpu_aligned_peak.png": "comparison_proxy_host_cpu_aligned_peak.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_A.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_A.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_B.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_B.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_C.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_C.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_D.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_D.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_E.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_E.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_SQS_A.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_SQS_A.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_SQS_B.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_SQS_B.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_SQS_C.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_SQS_C.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_SQS_D.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_SQS_D.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_SQS_E.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__OJP_SQS_E.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__pgBouncer_A.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__pgBouncer_A.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__pgBouncer_B.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__pgBouncer_B.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__pgBouncer_C.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__pgBouncer_C.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__pgBouncer_D.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__pgBouncer_D.png",
+    "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__pgBouncer_E.png": "comparison_proxy_host_cpu_aligned_peak/comparison_proxy_host_cpu_aligned_peak__pgBouncer_E.png",
     "comparison_proxy_service_cpu_aligned_peak/comparison_proxy_service_cpu_aligned_peak__OJP_A.png": "comparison_proxy_service_cpu_aligned_peak/comparison_proxy_service_cpu_aligned_peak__OJP_A.png",
     "comparison_proxy_service_cpu_aligned_peak/comparison_proxy_service_cpu_aligned_peak__OJP_B.png": "comparison_proxy_service_cpu_aligned_peak/comparison_proxy_service_cpu_aligned_peak__OJP_B.png",
     "comparison_proxy_service_cpu_aligned_peak/comparison_proxy_service_cpu_aligned_peak__OJP_C.png": "comparison_proxy_service_cpu_aligned_peak/comparison_proxy_service_cpu_aligned_peak__OJP_C.png",
@@ -1054,6 +1105,7 @@
     "comparison_proxy_service_cpu_aligned_peak/comparison_proxy_service_cpu_aligned_peak__pgBouncer_D.png": "comparison_proxy_service_cpu_aligned_peak/comparison_proxy_service_cpu_aligned_peak__pgBouncer_D.png",
     "comparison_proxy_service_cpu_aligned_peak/comparison_proxy_service_cpu_aligned_peak__pgBouncer_E.png": "comparison_proxy_service_cpu_aligned_peak/comparison_proxy_service_cpu_aligned_peak__pgBouncer_E.png",
     "comparison_total_completed_rps.png": "comparison_total_completed_rps.png",
+    "comparison_total_successful_requests.png": "comparison_total_successful_requests.png",
     "comparison_total_throughput.png": "comparison_total_throughput.png",
     "comparison_metadata.json": "comparison_metadata.json",
     "comparison_summary.csv": "comparison_summary.csv"

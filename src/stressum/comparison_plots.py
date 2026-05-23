@@ -8,7 +8,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from stressum.aggregate import is_open_loop, proxy_tier_cpu_timeseries
+from stressum.aggregate import (
+    is_open_loop,
+    proxy_tier_cpu_timeseries,
+    proxy_tier_host_cpu_timeseries,
+)
 from stressum.load import RunBundle, read_node_csv
 
 
@@ -77,6 +81,36 @@ def plot_comparison_latency_percentile(
     ax.bar(labels, values_ms, color="steelblue")
     ax.set_ylabel("Latency (ms)")
     ax.set_title(f"{title} — {percentile}")
+    ax.tick_params(axis="x", rotation=25)
+    fig.tight_layout()
+    fig.savefig(out, format="png")
+    plt.close(fig)
+
+
+def plot_comparison_total_successful_requests(
+    labels: list[str],
+    totals: list[int],
+    out: Path,
+) -> None:
+    fig, ax = plt.subplots(figsize=(max(7.5, len(labels) * 0.9), 3.6))
+    ax.bar(labels, totals, color="steelblue")
+    ax.set_ylabel("Total successful requests (sum of replicas)")
+    ax.set_title("Total successful by scenario")
+    ax.tick_params(axis="x", rotation=25)
+    fig.tight_layout()
+    fig.savefig(out, format="png")
+    plt.close(fig)
+
+
+def plot_comparison_proxy_host_cpu_aligned_peak(
+    labels: list[str],
+    peaks_pct: list[float],
+    out: Path,
+) -> None:
+    fig, ax = plt.subplots(figsize=(max(7.5, len(labels) * 0.9), 3.6))
+    ax.bar(labels, peaks_pct, color="slateblue")
+    ax.set_ylabel("host_cpu aligned peak sum (%)")
+    ax.set_title("Proxy tier host CPU — time-aligned peak by scenario")
     ax.tick_params(axis="x", rotation=25)
     fig.tight_layout()
     fig.savefig(out, format="png")
@@ -277,6 +311,31 @@ def plot_scenario_proxy_service_cpu_aligned_peak(
     return True
 
 
+def plot_scenario_proxy_host_cpu_aligned_peak(
+    label: str,
+    bundle: RunBundle,
+    out: Path,
+    *,
+    aligned_peak_pct: float | None = None,
+) -> bool:
+    ts = proxy_tier_host_cpu_timeseries(bundle)
+    if ts is None:
+        return False
+    t0, tier_sum, peak = ts
+    peak_pct = aligned_peak_pct if aligned_peak_pct is not None else peak
+    fig, ax = plt.subplots(figsize=(9, 2.8))
+    ax.plot(t0, tier_sum, color="slateblue", linewidth=0.8)
+    ax.set_ylabel("host_cpu sum (%)")
+    ax.set_xlabel("Time since sample start (s)")
+    ax.set_title(
+        f"Proxy tier host CPU — time-aligned sum (aligned_peak={peak_pct:.1f}%) — {label}"
+    )
+    fig.tight_layout()
+    fig.savefig(out, format="png")
+    plt.close(fig)
+    return True
+
+
 def _combined_timeseries(bundle: RunBundle) -> pd.DataFrame | None:
     frames: list[pd.DataFrame] = []
     for rid in bundle.replica_ids:
@@ -389,6 +448,23 @@ def write_comparison_plots(
     plot_comparison_error_rate(labels, [s["agg"].aggregate_error_rate for s in scenarios], ep)
     paths["comparison_error_rate.png"] = ep
 
+    sr = out_dir / "comparison_total_successful_requests.png"
+    plot_comparison_total_successful_requests(
+        labels,
+        [s["agg"].total_successful_requests for s in scenarios],
+        sr,
+    )
+    paths["comparison_total_successful_requests.png"] = sr
+
+    host_cpu_peaks: list[float] = []
+    for s in scenarios:
+        peak = (s.get("proxy_cpu") or {}).get("host_cpu_aligned_peak_pct")
+        host_cpu_peaks.append(float(peak) if isinstance(peak, (int, float)) else float("nan"))
+    if any(np.isfinite(p) for p in host_cpu_peaks):
+        hp = out_dir / "comparison_proxy_host_cpu_aligned_peak.png"
+        plot_comparison_proxy_host_cpu_aligned_peak(labels, host_cpu_peaks, hp)
+        paths["comparison_proxy_host_cpu_aligned_peak.png"] = hp
+
     open_any = False
     missed_tot: list[int] = []
     delay_tot: list[float] = []
@@ -441,6 +517,19 @@ def write_comparison_plots(
             ):
                 rel = out.relative_to(out_dir).as_posix()
                 paths[rel] = out
+            host_peak = proxy_cpu.get("host_cpu_aligned_peak_pct")
+            if isinstance(host_peak, (int, float)):
+                base = "comparison_proxy_host_cpu_aligned_peak"
+                out = _per_scenario_output_path(out_dir, base, label, bundle)
+                out.parent.mkdir(parents=True, exist_ok=True)
+                if plot_scenario_proxy_host_cpu_aligned_peak(
+                    label,
+                    bundle,
+                    out,
+                    aligned_peak_pct=float(host_peak),
+                ):
+                    rel = out.relative_to(out_dir).as_posix()
+                    paths[rel] = out
 
     ts = out_dir / "comparison_timeseries_rps_p99.png"
     if plot_comparison_timeseries_rps_p99([(s["label"], s["bundle"]) for s in scenarios], ts):

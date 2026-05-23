@@ -90,6 +90,7 @@ def test_compare_writes_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert (out / "comparison_summary.csv").is_file()
     assert (out / "comparison_total_throughput.png").is_file()
     assert (out / "comparison_total_completed_rps.png").is_file()
+    assert (out / "comparison_total_successful_requests.png").is_file()
     assert (out / "comparison_open_loop.png").is_file()
     assert (out / "comparison_latency_p50.png").is_file()
     assert (out / "comparison_latency_p95.png").is_file()
@@ -97,6 +98,8 @@ def test_compare_writes_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert (out / "comparison_latency_p999.png").is_file()
     summary = pd.read_csv(out / "comparison_summary.csv")
     assert "total_successful_rps_sum" in summary.columns
+    assert "total_successful_requests" in summary.columns
+    assert "proxy_host_cpu_aligned_peak_pct" in summary.columns
     assert "total_error_rps_sum" in summary.columns
     assert "total_completed_rps_sum" in summary.columns
     assert "open_loop" in summary.columns
@@ -174,3 +177,36 @@ def test_compare_fairness_warning(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     out = _latest_comparison_out(tmp_path)
     meta = json.loads((out / "comparison_metadata.json").read_text(encoding="utf-8"))
     assert any("workload" in w for w in meta["global_warnings"])
+
+
+def test_compare_proxy_host_cpu_charts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("stressum.cli.discover_stressum_repo_root", lambda: tmp_path)
+    cfg_dir = tmp_path
+    run_a = cfg_dir / "proxy-a"
+    run_b = cfg_dir / "proxy-b"
+    shutil.copytree(FIXTURE, run_a)
+    shutil.copytree(FIXTURE, run_b)
+    for run in (run_a, run_b):
+        proxy_dir = run / "node_metrics" / "proxy"
+        proxy_dir.mkdir(parents=True, exist_ok=True)
+        (proxy_dir / "node-a_proc_metrics.csv").write_text(
+            "timestamp,pid,cpu_pct,host_cpu_pct,rss_mb,vsz_mb\n"
+            "2026-01-01T00:00:00Z,1,10.0,20.0,100,200\n"
+            "2026-01-01T00:00:01Z,1,30.0,40.0,100,200\n",
+            encoding="utf-8",
+        )
+    cfg_path = cfg_dir / "stressum-comparison.json"
+    cfg_path.write_text(
+        json.dumps({"runs": [{"path": "proxy-a"}, {"path": "proxy-b"}]}),
+        encoding="utf-8",
+    )
+    assert main([]) == 0
+    out = _latest_comparison_out(tmp_path)
+    summary = pd.read_csv(out / "comparison_summary.csv")
+    assert summary["proxy_host_cpu_aligned_peak_pct"].tolist() == [40.0, 40.0]
+    assert (out / "comparison_proxy_host_cpu_aligned_peak.png").is_file()
+    assert (
+        out
+        / "comparison_proxy_host_cpu_aligned_peak"
+        / "comparison_proxy_host_cpu_aligned_peak__proxy-a.png"
+    ).is_file()

@@ -144,6 +144,7 @@ def run_comparison(
             "total_error_rps": agg.total_error_rps,
             "total_completed_rps": agg.total_completed_rps,
             "total_attempted_rps": agg.total_attempted_rps,
+            "total_successful_requests": agg.total_successful_requests,
             "aggregate_error_rate": agg.aggregate_error_rate,
             "errors_by_type": agg.errors_by_type,
             "top_error_types": _top_error_types(agg.errors_by_type),
@@ -167,6 +168,9 @@ def run_comparison(
             scenario_meta["proxy_service_cpu_legacy_peak_sum_pct"] = proxy_cpu[
                 "service_cpu_legacy_peak_sum_pct"
             ]
+            host_peak = proxy_cpu.get("host_cpu_aligned_peak_pct")
+            if isinstance(host_peak, (int, float)):
+                scenario_meta["proxy_host_cpu_aligned_peak_pct"] = float(host_peak)
         if merged is not None:
             scenario_meta["merged_latency_ms"] = {
                 "p50": merged.p50_ms,
