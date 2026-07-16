@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from stressum.aggregate import proxy_tier_rss_summary
+from stressum.chart_artifacts import register_chart_artifacts, save_chart_artifacts
 from stressum.comparison_plots import _technology_from_label
 from stressum.load import RunBundle, read_node_csv
 
@@ -47,6 +48,7 @@ _SUMMARY_METRICS: dict[str, str] = {
     "error_rate_pct": "error_rate_pct",
     "p95_latency_ms": "p95_latency_ms",
     "p99_latency_ms": "p99_latency_ms",
+    "mean_failed_latency_ms": "mean_failed_latency_ms",
     "postgres_backend_connections": "postgres_backend_connections",
     "rps_per_db_connection": "rps_per_db_connection",
     "postgres_cpu_pct_avg": "postgres_cpu_pct_avg",
@@ -116,6 +118,12 @@ def write_paper_outputs(
             f"p99 successful latency vs load — {scenario_title}",
         ),
         (
+            "mean_failed_latency_vs_load.png",
+            "mean_failed_latency_ms",
+            "Mean failed-request latency (ms)",
+            f"Mean failed-request latency vs load — {scenario_title}",
+        ),
+        (
             "postgres_backend_connections_vs_load.png",
             "postgres_backend_connections",
             "Observed PostgreSQL backend connections",
@@ -142,14 +150,14 @@ def write_paper_outputs(
         (
             "proxy_tier_cpu_vs_load.png",
             "proxy_tier_cpu_pct",
-            "Proxy-tier CPU (%)",
-            f"Proxy-tier CPU vs load — {scenario_title}",
+            "Proxy-tier total CPU across nodes (%)",
+            f"Proxy-tier total CPU across nodes vs load — {scenario_title}",
         ),
         (
             "proxy_tier_rss_vs_load.png",
             "proxy_tier_rss_mib",
-            "Proxy-tier RSS (MiB)",
-            f"Proxy-tier RSS vs load — {scenario_title}",
+            "Proxy-tier total RSS across nodes (MiB)",
+            f"Proxy-tier total RSS across nodes vs load — {scenario_title}",
         ),
     ):
         out = out_dir / filename
@@ -162,7 +170,7 @@ def write_paper_outputs(
             warnings=warnings,
             technologies=_PROXY_TIER_TECH_ORDER if metric.startswith("proxy_tier_") else None,
         )
-        paths[out.relative_to(out_dir).as_posix()] = out
+        register_chart_artifacts(paths, out, out_dir)
 
     attempted_out = out_dir / "attempted_completed_success_error_rps.png"
     _plot_attempted_completed_chart(
@@ -171,38 +179,7 @@ def write_paper_outputs(
         title=f"Offered, attempted, successful, and error RPS vs load — {scenario_title}",
         warnings=warnings,
     )
-    paths[attempted_out.relative_to(out_dir).as_posix()] = attempted_out
-
-    for metric, filename, ylabel, title in (
-        (
-            "p95_latency_ms",
-            "p95_latency_boxplot.png",
-            "p95 successful latency (ms)",
-            f"p95 successful latency distribution by load — {scenario_title}",
-        ),
-        (
-            "p99_latency_ms",
-            "p99_latency_boxplot.png",
-            "p99 successful latency (ms)",
-            f"p99 successful latency distribution by load — {scenario_title}",
-        ),
-        (
-            "successful_rps",
-            "throughput_boxplot.png",
-            "Successful throughput (RPS)",
-            f"Successful throughput distribution by load — {scenario_title}",
-        ),
-    ):
-        out = out_dir / filename
-        _plot_metric_boxplot(
-            repetition_df,
-            metric,
-            out,
-            ylabel=ylabel,
-            title=title,
-            warnings=warnings,
-        )
-        paths[out.relative_to(out_dir).as_posix()] = out
+    register_chart_artifacts(paths, attempted_out, out_dir)
 
     error_breakdown_out = out_dir / "error_type_breakdown.png"
     _plot_error_type_breakdown(
@@ -211,17 +188,7 @@ def write_paper_outputs(
         title=f"Error-type breakdown by technology and load — {scenario_title}",
         warnings=warnings,
     )
-    paths[error_breakdown_out.relative_to(out_dir).as_posix()] = error_breakdown_out
-
-    slo_out = out_dir / "slo_heatmap.png"
-    _plot_slo_heatmap(
-        summary_df,
-        slo_out,
-        title=f"SLO pass/fail heatmap — {scenario_title}",
-        slo_p95_ms=slo_p95_ms,
-        slo_error_rate_pct=slo_error_rate_pct,
-    )
-    paths[slo_out.relative_to(out_dir).as_posix()] = slo_out
+    register_chart_artifacts(paths, error_breakdown_out, out_dir)
 
     for filename, metric, ylabel, title in (
         (
@@ -240,7 +207,7 @@ def write_paper_outputs(
             title=title,
             warnings=warnings,
         ):
-            paths[out.relative_to(out_dir).as_posix()] = out
+            register_chart_artifacts(paths, out, out_dir)
 
     heap_combined_out = out_dir / "ojp_heap_used_committed_vs_load.png"
     if _plot_ojp_heap_combined(
@@ -249,7 +216,7 @@ def write_paper_outputs(
         title=f"OJP heap used and committed vs load — {scenario_title}",
         warnings=warnings,
     ):
-        paths[heap_combined_out.relative_to(out_dir).as_posix()] = heap_combined_out
+        register_chart_artifacts(paths, heap_combined_out, out_dir)
 
     index_out = out_dir / "main_graphs_index.md"
     index_out.write_text(_paper_index_markdown(), encoding="utf-8")
@@ -285,7 +252,7 @@ def write_ojp_heap_debug_outputs(
         title="OJP heap used per node by load",
         warnings=warnings,
     ):
-        paths[out.relative_to(out_dir).as_posix()] = out
+        register_chart_artifacts(paths, out, out_dir)
     return paths, list(dict.fromkeys(warnings))
 
 
@@ -424,6 +391,7 @@ def _paper_row_for_scenario(
         "error_rate_pct": agg.aggregate_error_rate * 100.0,
         "p95_latency_ms": p95_ms,
         "p99_latency_ms": p99_ms,
+        "mean_failed_latency_ms": _paper_mean_failed_latency_ms(scenario),
         "postgres_backend_connections": pg_backends,
         "rps_per_db_connection": (
             agg.total_successful_rps / pg_backends if pg_backends and pg_backends > 0 else math.nan
@@ -552,6 +520,26 @@ def _paper_latency_percentiles(scenario: dict[str, Any]) -> tuple[float, float]:
     if merged is not None:
         return float(merged.p95_ms), float(merged.p99_ms)
     return float(agg.median_p95_ms or 0.0), float(agg.median_p99_ms or 0.0)
+
+
+def _paper_mean_failed_latency_ms(scenario: dict[str, Any]) -> float:
+    agg = scenario["agg"]
+    weighted_sum = 0.0
+    failed_total = 0.0
+    for row in agg.rows:
+        mean_failed_ms = row.get("mean_failed_ms")
+        failed_requests = row.get("failed_requests")
+        if not isinstance(mean_failed_ms, (int, float)) or not isinstance(
+            failed_requests, (int, float)
+        ):
+            continue
+        if failed_requests <= 0:
+            continue
+        weighted_sum += float(mean_failed_ms) * float(failed_requests)
+        failed_total += float(failed_requests)
+    if failed_total > 0:
+        return weighted_sum / failed_total
+    return math.nan
 
 
 def _postgres_backend_connections(bundle: RunBundle) -> float:
@@ -684,6 +672,7 @@ def _plot_metric_line(
         else _ordered_technologies(metric_df["technology"].tolist())
     )
     any_series = False
+    range_label_added = False
     for technology in ordered_technologies:
         tech_df = metric_df.loc[metric_df["technology"] == technology].sort_values(
             "aggregate_rps"
@@ -694,11 +683,13 @@ def _plot_metric_line(
         any_series = True
         xs = tech_df["aggregate_rps"].to_numpy(dtype=float)
         ys = tech_df["mean"].to_numpy(dtype=float)
-        ci_low = tech_df["ci95_low"].to_numpy(dtype=float)
-        ci_high = tech_df["ci95_high"].to_numpy(dtype=float)
+        range_low = tech_df["min"].to_numpy(dtype=float)
+        range_high = tech_df["max"].to_numpy(dtype=float)
         color = _paper_color(technology)
         ax.plot(xs, ys, marker="o", linewidth=1.4, color=color, label=technology)
-        ax.fill_between(xs, ci_low, ci_high, color=color, alpha=0.18)
+        band_label = "Min/Max Range" if not range_label_added else None
+        ax.fill_between(xs, range_low, range_high, color=color, alpha=0.18, label=band_label)
+        range_label_added = True
     if not any_series:
         _render_placeholder(ax, title, "No data available")
         _save_plot(fig, out)
@@ -746,8 +737,8 @@ def _plot_attempted_completed_chart(
             if metric_name != "offered_rps":
                 ax.fill_between(
                     xs,
-                    tech_df["ci95_low"].to_numpy(dtype=float),
-                    tech_df["ci95_high"].to_numpy(dtype=float),
+                    tech_df["min"].to_numpy(dtype=float),
+                    tech_df["max"].to_numpy(dtype=float),
                     color=color,
                     alpha=0.18,
                 )
@@ -757,9 +748,7 @@ def _plot_attempted_completed_chart(
         ax.grid(True, alpha=0.25)
     axes[0, 0].legend(loc="best")
     fig.suptitle(title)
-    fig.tight_layout()
-    fig.savefig(out, format="png")
-    plt.close(fig)
+    save_chart_artifacts(fig, out)
 
 
 def _plot_metric_boxplot(
@@ -840,8 +829,8 @@ def _plot_ojp_heap_metric_line(
     ax.plot(xs, ys, marker="o", linewidth=1.4, color=color, label="OJP")
     ax.fill_between(
         xs,
-        tech_df["ci95_low"].to_numpy(dtype=float),
-        tech_df["ci95_high"].to_numpy(dtype=float),
+        tech_df["min"].to_numpy(dtype=float),
+        tech_df["max"].to_numpy(dtype=float),
         color=color,
         alpha=0.18,
     )
@@ -863,8 +852,12 @@ def _plot_ojp_heap_combined(
     warnings: list[str],
 ) -> bool:
     metric_specs = (
-        ("ojp_heap_used_mib", "Heap used", "-"),
-        ("ojp_heap_committed_mib", "Heap committed", "--"),
+        ("ojp_heap_used_mib", "Heap used (sum of per-node medians)", "-"),
+        (
+            "ojp_heap_committed_mib",
+            "Heap committed (sum of per-node medians)",
+            "--",
+        ),
     )
     metric_frames = {name: _ojp_metric_df(summary_df, name) for name, _, _ in metric_specs}
     missing = [name for name, df in metric_frames.items() if df.empty]
@@ -892,7 +885,7 @@ def _plot_ojp_heap_combined(
     ax.set_xticks(x_values)
     ax.set_xticklabels(tick_labels)
     ax.set_xlabel("Load (per-node RPS / aggregate RPS)")
-    ax.set_ylabel("Aggregate OJP heap (MiB)")
+    ax.set_ylabel("Cluster OJP heap (MiB, sum of per-node medians)")
     ax.set_title(title)
     ax.legend(loc="best")
     _save_plot(fig, out)
@@ -1154,9 +1147,10 @@ def _paper_index_markdown() -> str:
             "- `error_rate_vs_load.png`: `error_rate_pct` from `summary_stats.csv`.",
             "- `p95_latency_vs_load.png`: `p95_latency_ms` from `summary_stats.csv`.",
             "- `p99_latency_vs_load.png`: `p99_latency_ms` from `summary_stats.csv`.",
-            "- `p95_latency_boxplot.png`: `p95_latency_ms` from `repetition_values.csv`.",
-            "- `p99_latency_boxplot.png`: `p99_latency_ms` from `repetition_values.csv`.",
-            "- `throughput_boxplot.png`: `successful_rps` from `repetition_values.csv`.",
+            (
+                "- `mean_failed_latency_vs_load.png`: `mean_failed_latency_ms` from "
+                "`summary_stats.csv`."
+            ),
             (
                 "- `postgres_backend_connections_vs_load.png`: "
                 "`postgres_backend_connections` from `summary_stats.csv`."
@@ -1167,12 +1161,20 @@ def _paper_index_markdown() -> str:
             ),
             "- `postgres_cpu_vs_load.png`: `postgres_cpu_pct_avg` from `summary_stats.csv`.",
             "- `postgres_rss_vs_load.png`: `postgres_rss_mib` from `summary_stats.csv`.",
-            "- `proxy_tier_cpu_vs_load.png`: `proxy_tier_cpu_pct` from `summary_stats.csv`.",
-            "- `proxy_tier_rss_vs_load.png`: `proxy_tier_rss_mib` from `summary_stats.csv`.",
+            (
+                "- `proxy_tier_cpu_vs_load.png`: `proxy_tier_cpu_pct` from "
+                "`summary_stats.csv` (per-run time-aligned sum across proxy/LB nodes; "
+                "report line = mean across repetitions)."
+            ),
+            (
+                "- `proxy_tier_rss_vs_load.png`: `proxy_tier_rss_mib` from "
+                "`summary_stats.csv` (per-run time-aligned sum across proxy/LB nodes; "
+                "report line = mean across repetitions)."
+            ),
             (
                 "- `ojp_heap_used_committed_vs_load.png`: `ojp_heap_used_mib` and "
-                "`ojp_heap_committed_mib` from "
-                "`summary_stats.csv` when OJP JVM heap data exists."
+                "`ojp_heap_committed_mib` from `summary_stats.csv` when OJP JVM "
+                "heap data exists (cluster value = sum of per-node medians)."
             ),
             (
                 "- `ojp_heap_utilisation_vs_load.png`: "
@@ -1182,10 +1184,6 @@ def _paper_index_markdown() -> str:
             (
                 "- `error_type_breakdown.png`: `error_count_*` columns from "
                 "`repetition_values.csv` grouped by technology and load."
-            ),
-            (
-                "- `slo_heatmap.png`: `p95_latency_ms` and `error_rate_pct` from "
-                "`summary_stats.csv` compared against CLI SLO thresholds."
             ),
             (
                 "- `GRAPH_RATIONALE.md`: explains why each main figure exists, including "
@@ -1208,30 +1206,31 @@ def _graph_rationale_markdown() -> str:
                 "that load level."
             ),
             (
-                "- The shaded band above and below a line is the 95% confidence interval. In "
-                "simple words, it shows the range where the true average is likely to sit "
-                "based on the five repeated runs."
+                "- The shaded band above and below a line is the Min/Max Range: the absolute "
+                "minimum and maximum values observed across the five repeated runs at that "
+                "load level."
             ),
             (
                 "- Narrower shaded bands mean the repetitions were more consistent. Wider "
                 "bands mean the result moved around more from run to run."
             ),
             "",
-            "## Where mean ± 95% CI is used",
+            "## Where mean with Min/Max Range is used",
             "",
             (
-                "- Mean ± 95% CI is used in these report line graphs: "
+                "- Mean with Min/Max Range is used in these report line graphs: "
                 "`throughput_vs_load.png`, `error_rate_vs_load.png`, "
                 "`p95_latency_vs_load.png`, `p99_latency_vs_load.png`, "
+                "`mean_failed_latency_vs_load.png`, "
                 "`postgres_backend_connections_vs_load.png`, "
                 "`rps_per_db_connection_vs_load.png`, `postgres_cpu_vs_load.png`, "
                 "`postgres_rss_vs_load.png`, `proxy_tier_cpu_vs_load.png`, "
                 "`proxy_tier_rss_vs_load.png`, and `ojp_heap_utilisation_vs_load.png`."
             ),
             (
-                "- Mean ± 95% CI is also used in the measured panels of "
+                "- Mean with Min/Max Range is also used in the measured panels of "
                 "`attempted_completed_success_error_rps.png`: attempted RPS, successful RPS, "
-                "and error RPS. The offered RPS panel does not use a confidence interval "
+                "and error RPS. The offered RPS panel does not show a shaded band "
                 "because it is the configured target load, not an observed metric with run to "
                 "run variation."
             ),
@@ -1241,15 +1240,21 @@ def _graph_rationale_markdown() -> str:
                 "bands to keep the two JVM series easy to compare on one view."
             ),
             (
-                "- Boxplots, the error breakdown chart, and the SLO heatmap do not use mean ± "
-                "95% CI because they are showing raw repetition spread, composition, or pass/"
-                "fail status rather than one averaged line per load."
+                "- `error_type_breakdown.png` does not use mean with Min/Max Range "
+                "because it shows failure composition rather than one averaged line "
+                "per load."
             ),
             (
                 "- `summary_stats.csv` stores mean, median, stddev, min, max, and 95% "
                 "confidence intervals for the report metrics, while `repetition_values.csv` "
-                "keeps the repetition-level raw values used by the boxplots and downstream "
-                "analysis."
+                "keeps the repetition-level raw values used by `error_type_breakdown.png` "
+                "and downstream analysis."
+            ),
+            (
+                "- For `proxy_tier_cpu_vs_load.png` and `proxy_tier_rss_vs_load.png`, each run "
+                "first time-aligns the proxy/LB node metrics and sums them across the tier. The "
+                "report line then shows the mean of those per-run totals across repetitions, so "
+                "the plotted value is not a per-node median."
             ),
             "",
             "## Core comparison figures",
@@ -1276,16 +1281,8 @@ def _graph_rationale_markdown() -> str:
                 "worse outliers than p95."
             ),
             (
-                "- `p95_latency_boxplot.png`: shows the full repetition-to-repetition spread of "
-                "p95 latency at each load, instead of only the average."
-            ),
-            (
-                "- `p99_latency_boxplot.png`: shows the repetition spread for p99 latency so "
-                "unstable tail behaviour is easier to spot."
-            ),
-            (
-                "- `throughput_boxplot.png`: shows the repetition spread of successful "
-                "throughput at each load."
+                "- `mean_failed_latency_vs_load.png`: shows how long failed requests took, which "
+                "helps separate fast rejections from slow timeouts under load."
             ),
             (
                 "- `postgres_backend_connections_vs_load.png`: explains how much backend "
@@ -1303,20 +1300,16 @@ def _graph_rationale_markdown() -> str:
                 "operating system."
             ),
             (
-                "- `proxy_tier_cpu_vs_load.png`: shows CPU cost in the proxy/application tier "
-                "for technologies that actually have that tier."
+                "- `proxy_tier_cpu_vs_load.png`: shows total CPU cost across the "
+                "proxy/application-tier nodes for technologies that actually have that tier."
             ),
             (
-                "- `proxy_tier_rss_vs_load.png`: shows the proxy/application-tier RSS memory "
-                "footprint for technologies that actually have that tier."
+                "- `proxy_tier_rss_vs_load.png`: shows total RSS memory footprint across the "
+                "proxy/application-tier nodes for technologies that actually have that tier."
             ),
             (
                 "- `error_type_breakdown.png`: groups failures by kind so total error rate can "
                 "be tied back to concrete failure modes."
-            ),
-            (
-                "- `slo_heatmap.png`: gives a quick pass/fail view against the configured p95 "
-                "latency and error-rate thresholds."
             ),
             "",
             "## OJP heap diagnostics",
@@ -1334,7 +1327,7 @@ def _graph_rationale_markdown() -> str:
             (
                 "- `ojp_heap_used_committed_vs_load.png`: keeps heap used and heap committed on "
                 "the same graph so the gap between live object demand and JVM reserved space is "
-                "easy to see."
+                "easy to see. Each plotted value is the cluster total (sum of per-node medians)."
             ),
             (
                 "- `ojp_heap_utilisation_vs_load.png`: shows how close OJP is to the "
@@ -1546,9 +1539,7 @@ def _render_placeholder(ax: Any, title: str, text: str) -> None:
 
 
 def _save_plot(fig: Any, out: Path) -> None:
-    fig.tight_layout()
-    fig.savefig(out, format="png")
-    plt.close(fig)
+    save_chart_artifacts(fig, out)
 
 
 def _error_category(error_name: str) -> str:

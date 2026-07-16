@@ -106,6 +106,8 @@ def test_paper_repetition_grouping_and_ci(tmp_path: Path) -> None:
     assert successful["stddev"] > 0.0
     assert successful["ci95_high"] > successful["mean"]
     assert successful["ci95_low"] < successful["mean"]
+    mean_failed = summary_df.loc[summary_df["metric_name"] == "mean_failed_latency_ms"].iloc[0]
+    assert pytest.approx(mean_failed["mean"], rel=1e-6) == ((5.0 * 10.0 + 6.0 * 20.0) / 30.0)
 
 
 def test_paper_aggregates_ojp_heap_metrics_and_summary_stats(tmp_path: Path) -> None:
@@ -206,8 +208,18 @@ def test_compare_generates_report_and_debug_outputs(
     assert (report / "summary_stats.csv").is_file()
     assert (report / "repetition_values.csv").is_file()
     assert (report / "throughput_vs_load.png").is_file()
-    assert (report / "slo_heatmap.png").is_file()
+    assert (report / "throughput_vs_load.md").is_file()
+    assert (report / "mean_failed_latency_vs_load.png").is_file()
+    assert (report / "mean_failed_latency_vs_load.md").is_file()
+    assert not (report / "p95_latency_boxplot.png").exists()
+    assert not (report / "p99_latency_boxplot.png").exists()
+    assert not (report / "throughput_boxplot.png").exists()
+    assert not (report / "slo_heatmap.png").exists()
     assert (debug / "comparison_cross_tech_total_throughput.png").is_file()
+    assert (debug / "comparison_cross_tech_total_throughput.md").is_file()
+    assert (report / "throughput_vs_load.md").read_text(encoding="utf-8").startswith(
+        "# throughput_vs_load.png"
+    )
     summary_df = pd.read_csv(report / "summary_stats.csv")
     assert {
         "scenario",
@@ -224,6 +236,7 @@ def test_compare_generates_report_and_debug_outputs(
         "ci95_low",
         "ci95_high",
     }.issubset(summary_df.columns)
+    assert "mean_failed_latency_ms" in set(summary_df["metric_name"])
 
 
 def test_compare_generates_ojp_heap_outputs_and_rationale(
@@ -272,7 +285,8 @@ def test_compare_generates_ojp_heap_outputs_and_rationale(
         "OJP runs on the JVM, so RSS alone can overstate live application memory pressure."
         in rationale
     )
-    assert "The shaded band above and below a line is the 95% confidence interval." in rationale
+    assert "The shaded band above and below a line is the Min/Max Range:" in rationale
+    assert "the plotted value is not a per-node median." in rationale
     assert "`throughput_vs_load.png`: the top-level throughput view." in rationale
     assert "`ojp_heap_used_committed_vs_load.png`: keeps heap used and heap committed" in rationale
     summary_df = pd.read_csv(report / "summary_stats.csv")
@@ -341,6 +355,8 @@ def test_proxy_tier_report_plots_skip_hikaricp(
                 "aggregate_rps": 100.0,
                 "per_node_rps": 50.0,
                 "mean": 0.0,
+                "min": 0.0,
+                "max": 0.0,
                 "ci95_low": 0.0,
                 "ci95_high": 0.0,
             },
@@ -350,6 +366,8 @@ def test_proxy_tier_report_plots_skip_hikaricp(
                 "aggregate_rps": 100.0,
                 "per_node_rps": 50.0,
                 "mean": 12.0,
+                "min": 11.0,
+                "max": 13.0,
                 "ci95_low": 11.0,
                 "ci95_high": 13.0,
             },
@@ -359,6 +377,8 @@ def test_proxy_tier_report_plots_skip_hikaricp(
                 "aggregate_rps": 100.0,
                 "per_node_rps": 50.0,
                 "mean": 8.0,
+                "min": 7.0,
+                "max": 9.0,
                 "ci95_low": 7.0,
                 "ci95_high": 9.0,
             },
@@ -369,13 +389,15 @@ def test_proxy_tier_report_plots_skip_hikaricp(
         summary_df,
         "proxy_tier_cpu_pct",
         tmp_path / "proxy_tier_cpu_vs_load.png",
-        ylabel="Proxy-tier CPU (%)",
-        title="Proxy-tier CPU vs load",
+        ylabel="Proxy-tier total CPU across nodes (%)",
+        title="Proxy-tier total CPU across nodes vs load",
         warnings=[],
         technologies=("OJP", "PgBouncer"),
     )
 
     fig = captured["fig"]
     labels = fig.axes[0].get_legend_handles_labels()[1]
-    assert labels == ["OJP", "PgBouncer"]
+    assert labels == ["OJP", "Min/Max Range", "PgBouncer"]
+    assert fig.axes[0].get_ylabel() == "Proxy-tier total CPU across nodes (%)"
+    assert fig.axes[0].get_title() == "Proxy-tier total CPU across nodes vs load"
     plt.close(fig)

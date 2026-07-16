@@ -90,6 +90,11 @@ def test_compare_writes_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert (out / "comparison_summary.csv").is_file()
     assert (out / "report" / "summary_stats.csv").is_file()
     assert (out / "report" / "main_graphs_index.md").is_file()
+    assert (out / "report" / "throughput_vs_load.md").is_file()
+    assert (out / "report" / "throughput_vs_load.md").read_text(encoding="utf-8").startswith(
+        "# throughput_vs_load.png"
+    )
+    assert "report/throughput_vs_load.md" in meta["artifacts"]
     bar_bases = (
         "comparison_total_throughput",
         "comparison_total_completed_rps",
@@ -106,10 +111,20 @@ def test_compare_writes_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
             out / "debug" / base / f"{base}__cmp-a.png"
         ).is_file(), f"missing per-technology bar chart for cmp-a: {base}"
         assert (
+            out / "debug" / base / f"{base}__cmp-a.md"
+        ).is_file(), f"missing per-technology markdown for cmp-a: {base}"
+        assert (
             out / "debug" / base / f"{base}__B.png"
         ).is_file(), f"missing per-technology bar chart for B: {base}"
+        assert (
+            out / "debug" / base / f"{base}__B.md"
+        ).is_file(), f"missing per-technology markdown for B: {base}"
         legacy = out / f"{base}.png"
         assert not legacy.exists(), f"legacy monolithic bar chart still exists: {base}"
+    assert (
+        "debug/comparison_total_throughput/comparison_total_throughput__cmp-a.md"
+        in meta["artifacts"]
+    )
     summary = pd.read_csv(out / "comparison_summary.csv")
     assert "total_successful_rps_sum" in summary.columns
     assert "total_successful_requests" in summary.columns
@@ -162,6 +177,33 @@ def test_compare_writes_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert not (out / "comparison_pg_numbackends.png").exists()
     assert not (out / "comparison_postgres_process_cpu.png").exists()
     assert not (out / "comparison_postgres_process_rss.png").exists()
+
+
+def test_compare_uses_10_second_default_latency_slo(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run_comparison(config_path: Path, out_dir: Path, **kwargs: object) -> tuple[int, dict]:
+        captured["config_path"] = config_path
+        captured["out_dir"] = out_dir
+        captured.update(kwargs)
+        return 0, {}
+
+    monkeypatch.setattr("stressum.cli.discover_stressum_repo_root", lambda: tmp_path)
+    monkeypatch.setattr("stressum.cli.run_comparison", fake_run_comparison)
+    cfg_path = tmp_path / "stressum-comparison.json"
+    cfg_path.write_text(
+        json.dumps({"runs": [{"path": "cmp-a"}, {"path": "cmp-b"}]}),
+        encoding="utf-8",
+    )
+
+    code = main([])
+
+    assert code == 0
+    assert captured["config_path"] == cfg_path.resolve()
+    assert captured["slo_p95_ms"] == 10_000.0
 
 
 def test_compare_writes_cross_technology_bar_charts(
@@ -221,6 +263,7 @@ def test_compare_writes_cross_technology_bar_charts(
     )
     for base in cross_tech_bases:
         assert (out / "debug" / f"{base}.png").is_file(), f"missing cross-tech chart: {base}"
+        assert (out / "debug" / f"{base}.md").is_file(), f"missing cross-tech markdown: {base}"
     meta = json.loads((out / "comparison_metadata.json").read_text(encoding="utf-8"))
     for scenario in meta["scenarios"]:
         assert "postgres_cpu_pct_peak" in scenario
