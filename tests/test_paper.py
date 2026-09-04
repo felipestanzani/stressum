@@ -209,6 +209,16 @@ def test_compare_generates_report_and_debug_outputs(
     assert (report / "repetition_values.csv").is_file()
     assert (report / "throughput_vs_load.png").is_file()
     assert (report / "throughput_vs_load.md").is_file()
+    assert (report / "attempted_completed_success_error_rps.png").is_file()
+    assert (report / "attempted_completed_success_error_rps.md").is_file()
+    for name in (
+        "offered_rps_vs_load",
+        "attempted_rps_vs_load",
+        "successful_rps_vs_load",
+        "error_rps_vs_load",
+    ):
+        assert (report / f"{name}.png").is_file()
+        assert (report / f"{name}.md").is_file()
     assert (report / "mean_failed_latency_vs_load.png").is_file()
     assert (report / "mean_failed_latency_vs_load.md").is_file()
     assert not (report / "p95_latency_boxplot.png").exists()

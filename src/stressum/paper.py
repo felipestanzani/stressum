@@ -169,6 +169,7 @@ def write_paper_outputs(
             title=title,
             warnings=warnings,
             technologies=_PROXY_TIER_TECH_ORDER if metric.startswith("proxy_tier_") else None,
+            figsize=(8.8, 4.515) if metric == "postgres_backend_connections" else (8.8, 4.3),
         )
         register_chart_artifacts(paths, out, out_dir)
 
@@ -180,6 +181,48 @@ def write_paper_outputs(
         warnings=warnings,
     )
     register_chart_artifacts(paths, attempted_out, out_dir)
+
+    for filename, metric, ylabel, title, show_range_band in (
+        (
+            "offered_rps_vs_load.png",
+            "offered_rps",
+            "Offered RPS",
+            f"Offered RPS vs load — {scenario_title}",
+            False,
+        ),
+        (
+            "attempted_rps_vs_load.png",
+            "attempted_rps",
+            "Attempted RPS",
+            f"Attempted RPS vs load — {scenario_title}",
+            True,
+        ),
+        (
+            "successful_rps_vs_load.png",
+            "successful_rps",
+            "Successful RPS",
+            f"Successful RPS vs load — {scenario_title}",
+            True,
+        ),
+        (
+            "error_rps_vs_load.png",
+            "error_rps",
+            "Error RPS",
+            f"Error RPS vs load — {scenario_title}",
+            True,
+        ),
+    ):
+        out = out_dir / filename
+        _plot_metric_line(
+            summary_df,
+            metric,
+            out,
+            ylabel=ylabel,
+            title=title,
+            warnings=warnings,
+            show_range_band=show_range_band,
+        )
+        register_chart_artifacts(paths, out, out_dir)
 
     error_breakdown_out = out_dir / "error_type_breakdown.png"
     _plot_error_type_breakdown(
@@ -656,11 +699,13 @@ def _plot_metric_line(
     title: str,
     warnings: list[str],
     technologies: tuple[str, ...] | None = None,
+    show_range_band: bool = True,
+    figsize: tuple[float, float] = (8.8, 4.3),
 ) -> None:
     metric_df = _summary_metric(summary_df, metric_name)
     if technologies is not None:
         metric_df = metric_df.loc[metric_df["technology"].isin(technologies)].copy()
-    fig, ax = plt.subplots(figsize=(8.8, 4.3))
+    fig, ax = plt.subplots(figsize=figsize)
     if metric_df.empty:
         _render_placeholder(ax, title, "No data available")
         _save_plot(fig, out)
@@ -683,13 +728,14 @@ def _plot_metric_line(
         any_series = True
         xs = tech_df["aggregate_rps"].to_numpy(dtype=float)
         ys = tech_df["mean"].to_numpy(dtype=float)
-        range_low = tech_df["min"].to_numpy(dtype=float)
-        range_high = tech_df["max"].to_numpy(dtype=float)
         color = _paper_color(technology)
-        ax.plot(xs, ys, marker="o", linewidth=1.4, color=color, label=technology)
-        band_label = "Min/Max Range" if not range_label_added else None
-        ax.fill_between(xs, range_low, range_high, color=color, alpha=0.18, label=band_label)
-        range_label_added = True
+        ax.plot(xs, ys, marker="o", linewidth=2.2, color=color, label=technology)
+        if show_range_band:
+            range_low = tech_df["min"].to_numpy(dtype=float)
+            range_high = tech_df["max"].to_numpy(dtype=float)
+            band_label = "Min/Max Range" if not range_label_added else None
+            ax.fill_between(xs, range_low, range_high, color=color, alpha=0.18, label=band_label)
+            range_label_added = True
     if not any_series:
         _render_placeholder(ax, title, "No data available")
         _save_plot(fig, out)
@@ -733,7 +779,7 @@ def _plot_attempted_completed_chart(
             xs = tech_df["aggregate_rps"].to_numpy(dtype=float)
             ys = tech_df["mean"].to_numpy(dtype=float)
             color = _paper_color(technology)
-            ax.plot(xs, ys, marker="o", linewidth=1.4, color=color, label=technology)
+            ax.plot(xs, ys, marker="o", linewidth=2.2, color=color, label=technology)
             if metric_name != "offered_rps":
                 ax.fill_between(
                     xs,
@@ -826,7 +872,7 @@ def _plot_ojp_heap_metric_line(
     tech_df = metric_df.sort_values("aggregate_rps")
     xs = tech_df["aggregate_rps"].to_numpy(dtype=float)
     ys = tech_df["mean"].to_numpy(dtype=float)
-    ax.plot(xs, ys, marker="o", linewidth=1.4, color=color, label="OJP")
+    ax.plot(xs, ys, marker="o", linewidth=2.2, color=color, label="OJP")
     ax.fill_between(
         xs,
         tech_df["min"].to_numpy(dtype=float),
@@ -877,7 +923,7 @@ def _plot_ojp_heap_combined(
             metric_df["aggregate_rps"].to_numpy(dtype=float),
             metric_df["mean"].to_numpy(dtype=float),
             marker="o",
-            linewidth=1.4,
+            linewidth=2.2,
             linestyle=linestyle,
             color=color,
             label=label,
@@ -1036,7 +1082,7 @@ def _plot_error_type_breakdown(
     ax.set_xticklabels(labels, rotation=30, ha="right")
     ax.set_ylabel("Mean failed requests per repetition")
     ax.set_title(title)
-    ax.legend(loc="upper right", fontsize=8)
+    ax.legend(loc="upper right")
     _save_plot(fig, out)
 
 
@@ -1121,7 +1167,7 @@ def _plot_slo_heatmap(
     legend_handles = [
         mpatches.Patch(color=color, label=label) for label, color in _SLO_COLORS.items()
     ]
-    ax.legend(handles=legend_handles, loc="upper right", fontsize=8)
+    ax.legend(handles=legend_handles, loc="upper right")
     _save_plot(fig, out)
 
 
@@ -1144,6 +1190,10 @@ def _paper_index_markdown() -> str:
                 "`attempted_rps`, `successful_rps`, and `error_rps` from "
                 "`summary_stats.csv`."
             ),
+            "- `offered_rps_vs_load.png`: `offered_rps` from `summary_stats.csv`.",
+            "- `attempted_rps_vs_load.png`: `attempted_rps` from `summary_stats.csv`.",
+            "- `successful_rps_vs_load.png`: `successful_rps` from `summary_stats.csv`.",
+            "- `error_rps_vs_load.png`: `error_rps` from `summary_stats.csv`.",
             "- `error_rate_vs_load.png`: `error_rate_pct` from `summary_stats.csv`.",
             "- `p95_latency_vs_load.png`: `p95_latency_ms` from `summary_stats.csv`.",
             "- `p99_latency_vs_load.png`: `p99_latency_ms` from `summary_stats.csv`.",
@@ -1219,7 +1269,9 @@ def _graph_rationale_markdown() -> str:
             "",
             (
                 "- Mean with Min/Max Range is used in these report line graphs: "
-                "`throughput_vs_load.png`, `error_rate_vs_load.png`, "
+                "`throughput_vs_load.png`, `attempted_rps_vs_load.png`, "
+                "`successful_rps_vs_load.png`, `error_rps_vs_load.png`, "
+                "`error_rate_vs_load.png`, "
                 "`p95_latency_vs_load.png`, `p99_latency_vs_load.png`, "
                 "`mean_failed_latency_vs_load.png`, "
                 "`postgres_backend_connections_vs_load.png`, "
@@ -1232,7 +1284,8 @@ def _graph_rationale_markdown() -> str:
                 "`attempted_completed_success_error_rps.png`: attempted RPS, successful RPS, "
                 "and error RPS. The offered RPS panel does not show a shaded band "
                 "because it is the configured target load, not an observed metric with run to "
-                "run variation."
+                "run variation. The same applies to the standalone "
+                "`offered_rps_vs_load.png` chart."
             ),
             (
                 "- The combined OJP heap report graph "
@@ -1267,6 +1320,11 @@ def _graph_rationale_markdown() -> str:
                 "- `attempted_completed_success_error_rps.png`: separates target load, work "
                 "actually attempted, work completed successfully, and work that failed so it is "
                 "easy to see where a system starts falling behind."
+            ),
+            (
+                "- `offered_rps_vs_load.png`, `attempted_rps_vs_load.png`, "
+                "`successful_rps_vs_load.png`, and `error_rps_vs_load.png`: the same four "
+                "metrics as standalone charts for side-by-side or single-metric reading."
             ),
             (
                 "- `error_rate_vs_load.png`: the simplest reliability view. It shows when "
